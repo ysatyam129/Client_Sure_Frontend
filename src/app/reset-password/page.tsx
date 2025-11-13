@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Axios from "@/utils/Axios"
-// import axios from "../../../utils/axios"
 
-export default function ResetPasswordPage() {
+export const dynamic = 'force-dynamic'
+
+function ResetPasswordContent() {
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: ""
@@ -72,68 +73,76 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">Reset Password</h1>
-        
-        {email && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-6">
-            Resetting password for: {decodeURIComponent(email)}
-          </div>
-        )}
-        
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-black font-semibold mb-3 text-lg">
-              New Password
-            </label>
-            <input
-              type="password"
-              placeholder="Enter new password (min 6 characters)"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              className="w-full px-5 py-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg text-black bg-white"
-              required
-              minLength={6}
-            />
-          </div>
-
-          <div>
-            <label className="block text-black font-semibold mb-3 text-lg">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              placeholder="Confirm your new password"
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-              className="w-full px-5 py-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg text-black bg-white"
-              required
-              minLength={6}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading || !token || !email}
-            className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Resetting Password...' : 'Reset Password'}
-          </button>
-        </form>
-
-        <div className="text-center mt-6">
-          <a href="/auth/login" className="text-blue-600 hover:underline">
-            Back to Login
-          </a>
+    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">Reset Password</h1>
+      
+      {email && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-6">
+          Resetting password for: {decodeURIComponent(email)}
         </div>
+      )}
+      
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block text-black font-semibold mb-3 text-lg">
+            New Password
+          </label>
+          <input
+            type="password"
+            placeholder="Enter new password (min 6 characters)"
+            value={formData.password}
+            onChange={(e) => setFormData({...formData, password: e.target.value})}
+            className="w-full px-5 py-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg text-black bg-white"
+            required
+            minLength={6}
+          />
+        </div>
+
+        <div>
+          <label className="block text-black font-semibold mb-3 text-lg">
+            Confirm Password
+          </label>
+          <input
+            type="password"
+            placeholder="Confirm your new password"
+            value={formData.confirmPassword}
+            onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+            className="w-full px-5 py-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg text-black bg-white"
+            required
+            minLength={6}
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading || !token || !email}
+          className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? 'Resetting Password...' : 'Reset Password'}
+        </button>
+      </form>
+
+      <div className="text-center mt-6">
+        <a href="/auth/login" className="text-blue-600 hover:underline">
+          Back to Login
+        </a>
       </div>
+    </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+      <Suspense fallback={<div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">Loading...</div>}>
+        <ResetPasswordContent />
+      </Suspense>
     </div>
   )
 }

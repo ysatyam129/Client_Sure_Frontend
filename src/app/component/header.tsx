@@ -1,4 +1,5 @@
 import { Shield } from 'lucide-react'
+import Link from 'next/link'
 
 export default function Header() {
   return (
@@ -29,6 +30,11 @@ export default function Header() {
           <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">
             Contact
           </a>
+          <Link href="/auth/login">
+            <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium">
+              Login
+            </button>
+          </Link>
         </div>
       </nav>
     </header>

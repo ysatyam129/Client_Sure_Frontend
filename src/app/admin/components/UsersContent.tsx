@@ -6,17 +6,17 @@ interface User {
   _id: string
   name: string
   email: string
+  phone: string
   subscription?: {
     planId?: {
       name: string
       price: number
     }
-    status: string
-    expiresAt?: string
+    endDate?: string
   }
-  isActive: boolean
-  createdAt: string
   tokens: number
+  monthlyTokensRemaining: number
+  createdAt: string
 }
 
 export default function UsersContent() {
@@ -33,11 +33,11 @@ export default function UsersContent() {
   const loadUsers = async () => {
     try {
       const response = await Axios.get('/admin/users')
+      console.log('Users:', response.data)
       setUsers(response.data)
       
-      // Calculate stats
       const total = response.data.length
-      const active = response.data.filter((user: User) => user.isActive).length
+      const active = response.data.filter((user: User) => user.subscription?.planId).length
       const inactive = total - active
       const currentMonth = new Date().getMonth()
       const newThisMonth = response.data.filter((user: User) => 
@@ -52,25 +52,7 @@ export default function UsersContent() {
     }
   }
 
-  const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
-    try {
-      await Axios.put(`/admin/users/${userId}`, { isActive: !currentStatus })
-      loadUsers()
-    } catch (error) {
-      console.error('Error updating user status:', error)
-    }
-  }
 
-  const deleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return
-    
-    try {
-      await Axios.delete(`/admin/users/${userId}`)
-      loadUsers()
-    } catch (error) {
-      console.error('Error deleting user:', error)
-    }
-  }
 
   useEffect(() => {
     loadUsers()
@@ -167,23 +149,22 @@ export default function UsersContent() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subscription</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tokens</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Join Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                     Loading users...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                     No users found
                   </td>
                 </tr>
@@ -192,11 +173,11 @@ export default function UsersContent() {
                   <tr key={user._id || index} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium mr-4">
+                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium mr-3">
                           {user.name?.charAt(0)?.toUpperCase() || 'U'}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{user.name || 'Unknown'}</p>
+                          <p className="font-medium text-gray-900">{user.name}</p>
                           <p className="text-sm text-gray-600">{user.email}</p>
                         </div>
                       </div>
@@ -204,48 +185,33 @@ export default function UsersContent() {
                     <td className="px-6 py-4">
                       {user.subscription?.planId ? (
                         <div>
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
                             {user.subscription.planId.name}
                           </span>
-                          <p className="text-xs text-gray-500 mt-1">${user.subscription.planId.price}/month</p>
+                          <p className="text-xs text-gray-500 mt-1">₹{user.subscription.planId.price}</p>
                         </div>
                       ) : (
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
                           No Plan
                         </span>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-gray-900">{user.tokens || 0}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => toggleUserStatus(user._id, user.isActive)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {user.isActive ? 'Active' : 'Inactive'}
-                      </button>
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">{user.tokens || 0}</span>
+                        <p className="text-xs text-gray-500">{user.monthlyTokensRemaining || 0} monthly</p>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex space-x-3">
-                        <button 
-                          onClick={() => setSelectedUserId(user._id)}
-                          className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                        >
-                          View
-                        </button>
-                        {/* <button 
-                          onClick={() => deleteUser(user._id)}
-                          className="text-red-600 hover:text-red-800 font-medium text-sm"
-                        >
-                          Delete
-                        </button> */}
-                      </div>
+                      <button 
+                        onClick={() => setSelectedUserId(user._id)}
+                        className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                      >
+                        View Details
+                      </button>
                     </td>
                   </tr>
                 ))

@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { 
   Home, 
   Users, 
@@ -15,24 +14,15 @@ import {
   Search 
 } from "lucide-react"
 
-interface AdminSidebarProps {
-  activeSection: string
-  setActiveSection: (section: string) => void
-}
-
-export default function AdminSidebar({ activeSection, setActiveSection }: AdminSidebarProps) {
+export default function AdminSidebar() {
   const router = useRouter()
+  const pathname = usePathname()
 
   const sidebarItems = [
-    { name: 'Dashboard', icon: Home, path: 'dashboard' },
-    { name: 'Users', icon: Users, path: 'users' },
-    { name: 'Analytics', icon: BarChart3, path: 'leads' },
-    { name: 'Resources', icon: FolderOpen, path: 'resources', subItems: [
-      { name: 'PDF Documents', icon: FileText, path: 'pdf-documents' },
-      { name: 'Course Videos', icon: Play, path: 'course-videos' }
-    ]},
-    { name: 'Leaderboard', icon: Trophy, path: 'leaderboard' },
-    { name: 'Profile', icon: User, path: 'profile' }
+    { name: 'Dashboard', icon: Home, path: '/admin/dashboard' },
+    { name: 'Users', icon: Users, path: '/admin/users' },
+    { name: 'Leads', icon: BarChart3, path: '/admin/leads' },
+    { name: 'Resources', icon: FolderOpen, path: '/admin/resources' }
   ]
 
   const handleLogout = () => {
@@ -61,9 +51,9 @@ export default function AdminSidebar({ activeSection, setActiveSection }: AdminS
           {sidebarItems.map((item) => (
             <div key={item.name}>
               <button
-                onClick={() => setActiveSection(item.path)}
+                onClick={() => router.push(item.path)}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                  activeSection === item.path || (item.subItems && item.subItems.some(sub => activeSection === sub.path))
+                  pathname === item.path
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105' 
                     : 'text-slate-300 hover:bg-slate-700 hover:text-white hover:transform hover:scale-105'
                 }`}
@@ -71,26 +61,6 @@ export default function AdminSidebar({ activeSection, setActiveSection }: AdminS
                 <item.icon className="w-5 h-5" />
                 <span className="font-medium">{item.name}</span>
               </button>
-              
-              {/* Sub Items */}
-              {item.subItems && (activeSection === item.path || item.subItems.some(sub => activeSection === sub.path)) && (
-                <div className="ml-8 mt-2 space-y-1">
-                  {item.subItems.map((subItem) => (
-                    <button
-                      key={subItem.name}
-                      onClick={() => setActiveSection(subItem.path)}
-                      className={`w-full flex items-center space-x-3 px-4 py-2 rounded-lg transition-all duration-200 ${
-                        activeSection === subItem.path
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md' 
-                          : 'text-slate-400 hover:bg-slate-700 hover:text-white'
-                      }`}
-                    >
-                      <subItem.icon className="w-4 h-4" />
-                      <span className="text-sm font-medium">{subItem.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           ))}
         </nav>

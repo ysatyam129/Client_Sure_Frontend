@@ -12,7 +12,6 @@ interface AccessedResource {
   type: string
   url: string
   thumbnailUrl?: string
-  tokenCost: number
   createdAt: string
 }
 
@@ -32,10 +31,8 @@ export default function AccessedResourcesPage() {
     }
   }
 
-  const accessResource = async (url: string) => {
-    if (url) {
-      window.open(url, '_blank')
-    }
+  const accessResource = async (resourceId: string) => {
+    window.location.href = `/user/resource/${resourceId}`
   }
 
   useEffect(() => {
@@ -129,14 +126,11 @@ export default function AccessedResourcesPage() {
             {filteredResources.map((resource) => (
               <div key={resource._id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
                 <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex justify-start mb-4">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       resource.type === 'pdf' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
                     }`}>
                       {resource.type.toUpperCase()}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {resource.tokenCost} tokens used
                     </span>
                   </div>
                   
@@ -150,10 +144,10 @@ export default function AccessedResourcesPage() {
                   </div>
                   
                   <button
-                    onClick={() => accessResource(resource.url)}
+                    onClick={() => accessResource(resource._id)}
                     className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-semibold"
                   >
-                    Access Again
+                    View Details
                   </button>
                 </div>
               </div>

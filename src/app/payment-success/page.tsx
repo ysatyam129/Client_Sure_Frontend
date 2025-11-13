@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
-export default function PaymentSuccessPage() {
+export const dynamic = 'force-dynamic'
+
+function PaymentSuccessContent() {
   const [countdown, setCountdown] = useState(5)
   const [userEmail, setUserEmail] = useState("")
   const [userName, setUserName] = useState("")
@@ -35,11 +37,10 @@ export default function PaymentSuccessPage() {
 
   const redirectToLogin = () => {
     const email = userEmail || localStorage.getItem('pendingUserEmail') || ''
-    router.push(`/auth/login?payment=success&email=${encodeURIComponent(email)}`)
+    router.push(`/auth/login`)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
         {/* Success Icon */}
         <div className="text-green-600 text-6xl mb-6">✓</div>
@@ -72,7 +73,7 @@ export default function PaymentSuccessPage() {
         {/* Manual Continue Button */}
         <button
           onClick={redirectToLogin}
-          className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold text-lg transition-colors"
+          className="w-full py-4 px-6 bg-linear-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold text-lg transition-colors"
         >
           Continue to Login
         </button>
@@ -83,6 +84,15 @@ export default function PaymentSuccessPage() {
           <span>Your payment was processed securely</span>
         </div>
       </div>
+  )
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <div className="min-h-screen bg-linear-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+      <Suspense fallback={<div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">Loading...</div>}>
+        <PaymentSuccessContent />
+      </Suspense>
     </div>
   )
 }

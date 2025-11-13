@@ -1,12 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import Axios from "@/utils/Axios"
 
-
-export default function LoginPage() {
+function LoginForm() {
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -57,7 +56,6 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">Login</h1>
         
@@ -120,6 +118,15 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+      <Suspense fallback={<div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">Loading...</div>}>
+        <LoginForm />
+      </Suspense>
     </div>
   )
 }

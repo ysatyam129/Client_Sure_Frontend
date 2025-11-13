@@ -1,14 +1,14 @@
 "use client"
 
 import AdminSidebar from "../components/AdminSidebar"
-import DashboardContent from "../components/DashboardContent"
+import UsersContent from "../components/UsersContent"
 
-export default function AdminDashboard() {
+export default function UsersPage() {
   return (
     <div className="min-h-screen bg-gray-100 flex">
       <AdminSidebar />
       <div className="flex-1">
-        <DashboardContent />
+        <UsersContent />
       </div>
     </div>
   )

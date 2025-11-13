@@ -8,7 +8,6 @@ interface CourseVideo {
   title: string
   description: string
   url: string
-  tokenCost: number
   createdAt: string
   isActive: boolean
   thumbnailUrl?: string
@@ -20,7 +19,6 @@ export default function CourseVideosContent() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    tokenCost: 10,
     file: null as File | null
   })
   const [editingVideo, setEditingVideo] = useState<CourseVideo | null>(null)
@@ -41,13 +39,12 @@ export default function CourseVideosContent() {
     submitData.append('title', formData.title)
     submitData.append('description', formData.description)
     submitData.append('type', 'video')
-    submitData.append('tokenCost', formData.tokenCost.toString())
     submitData.append('file', formData.file)
 
     try {
       const response = await Axios.post('/admin/resources', submitData)
       if (response.data) {
-        setFormData({ title: "", description: "", tokenCost: 10, file: null })
+        setFormData({ title: "", description: "", file: null })
         setShowAddForm(false)
         loadVideos()
       }
@@ -86,7 +83,6 @@ export default function CourseVideosContent() {
     setFormData({
       title: video.title,
       description: video.description,
-      tokenCost: video.tokenCost,
       file: null
     })
     setShowAddForm(true)
@@ -102,17 +98,15 @@ export default function CourseVideosContent() {
         const submitData = new FormData()
         submitData.append('title', formData.title)
         submitData.append('description', formData.description)
-        submitData.append('tokenCost', formData.tokenCost.toString())
         submitData.append('file', formData.file)
         await Axios.put(`/admin/resources/${editingVideo.id}`, submitData)
       } else {
         await Axios.put(`/admin/resources/${editingVideo.id}`, {
           title: formData.title,
-          description: formData.description,
-          tokenCost: formData.tokenCost
+          description: formData.description
         })
       }
-      setFormData({ title: "", description: "", tokenCost: 10, file: null })
+      setFormData({ title: "", description: "", file: null })
       setEditingVideo(null)
       setShowAddForm(false)
       loadVideos()
@@ -125,7 +119,7 @@ export default function CourseVideosContent() {
 
   const cancelEdit = () => {
     setEditingVideo(null)
-    setFormData({ title: "", description: "", tokenCost: 10, file: null })
+    setFormData({ title: "", description: "", file: null })
     setShowAddForm(false)
   }
 
@@ -195,16 +189,6 @@ export default function CourseVideosContent() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-black mb-2">Token Cost</label>
-              <input
-                type="number"
-                value={formData.tokenCost}
-                onChange={(e) => setFormData({...formData, tokenCost: parseInt(e.target.value) || 0})}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-black"
-                min="1"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-semibold text-black mb-2">Video File</label>
               <input
                 type="file"
@@ -260,8 +244,7 @@ export default function CourseVideosContent() {
                 <div className="p-4">
                   <h4 className="font-medium text-gray-900 mb-2">{video.title}</h4>
                   <p className="text-sm text-gray-600 mb-3">{video.description}</p>
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-medium text-gray-900">{video.tokenCost} tokens</span>
+                  <div className="flex justify-end items-center mb-3">
                     <button
                       onClick={() => toggleStatus(video.id, video.isActive)}
                       className={`px-3 py-1 rounded-full text-xs font-medium ${

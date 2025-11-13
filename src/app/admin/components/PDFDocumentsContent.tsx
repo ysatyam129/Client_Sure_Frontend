@@ -8,7 +8,6 @@ interface PDFDocument {
   title: string
   description: string
   url: string
-  tokenCost: number
   createdAt: string
   isActive: boolean
 }
@@ -19,7 +18,6 @@ export default function PDFDocumentsContent() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    tokenCost: 5,
     file: null as File | null
   })
   const [editingDoc, setEditingDoc] = useState<PDFDocument | null>(null)
@@ -40,13 +38,12 @@ export default function PDFDocumentsContent() {
     submitData.append('title', formData.title)
     submitData.append('description', formData.description)
     submitData.append('type', 'pdf')
-    submitData.append('tokenCost', formData.tokenCost.toString())
     submitData.append('file', formData.file)
 
     try {
       const response = await Axios.post('/admin/resources', submitData)
       if (response.data) {
-        setFormData({ title: "", description: "", tokenCost: 5, file: null })
+        setFormData({ title: "", description: "", file: null })
         setShowAddForm(false)
         loadDocuments()
       }
@@ -85,7 +82,6 @@ export default function PDFDocumentsContent() {
     setFormData({
       title: doc.title,
       description: doc.description,
-      tokenCost: doc.tokenCost,
       file: null
     })
     setShowAddForm(true)
@@ -101,17 +97,15 @@ export default function PDFDocumentsContent() {
         const submitData = new FormData()
         submitData.append('title', formData.title)
         submitData.append('description', formData.description)
-        submitData.append('tokenCost', formData.tokenCost.toString())
         submitData.append('file', formData.file)
         await Axios.put(`/admin/resources/${editingDoc.id}`, submitData)
       } else {
         await Axios.put(`/admin/resources/${editingDoc.id}`, {
           title: formData.title,
-          description: formData.description,
-          tokenCost: formData.tokenCost
+          description: formData.description
         })
       }
-      setFormData({ title: "", description: "", tokenCost: 5, file: null })
+      setFormData({ title: "", description: "", file: null })
       setEditingDoc(null)
       setShowAddForm(false)
       loadDocuments()
@@ -124,7 +118,7 @@ export default function PDFDocumentsContent() {
 
   const cancelEdit = () => {
     setEditingDoc(null)
-    setFormData({ title: "", description: "", tokenCost: 5, file: null })
+    setFormData({ title: "", description: "", file: null })
     setShowAddForm(false)
   }
 
@@ -191,16 +185,6 @@ export default function PDFDocumentsContent() {
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                 rows={3}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-black mb-2">Token Cost</label>
-              <input
-                type="number"
-                value={formData.tokenCost}
-                onChange={(e) => setFormData({...formData, tokenCost: parseInt(e.target.value) || 0})}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                min="1"
               />
             </div>
             <div>
@@ -273,8 +257,7 @@ export default function PDFDocumentsContent() {
                   <h4 className="font-medium text-gray-900 mb-2 line-clamp-1">{doc.title}</h4>
                   <p className="text-sm text-gray-600 mb-3 line-clamp-2">{doc.description}</p>
                   
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-gray-900">{doc.tokenCost} tokens</span>
+                  <div className="flex items-center justify-end mb-3">
                     <span className="text-xs text-gray-500">
                       {new Date(doc.createdAt).toLocaleDateString()}
                     </span>

@@ -1,14 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Lock } from "lucide-react"
+import { useState, useEffect, Suspense } from "react"
+import { Lock, FileText, Play, AlertTriangle, Database, Users, ExternalLink, MessageCircle } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
-import LeadResourcesCard from "../components/LeadResourcesCard"
-import CoursesCard from "../components/CoursesCard"
 import Axios from "@/utils/Axios"
+
+export const dynamic = 'force-dynamic'
 
 interface UserStats {
   tokens: number
@@ -33,17 +33,14 @@ interface Resource {
   title: string
   type: string
   description: string
-  tokenCost: number
   thumbnailUrl?: string
   url?: string
   isAccessedByUser: boolean
 }
 
-export default function Dashboard() {
+function DashboardContent() {
   const [userStats, setUserStats] = useState<UserStats | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
-  const [filteredResources, setFilteredResources] = useState<Resource[]>([])
-  const [activeFilter, setActiveFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [showWelcome, setShowWelcome] = useState(false)
   const searchParams = useSearchParams()
@@ -91,7 +88,6 @@ export default function Dashboard() {
       const response = await Axios.get('/resources')
       const resourcesData = response.data.resources || []
       setResources(resourcesData)
-      setFilteredResources(resourcesData)
     } catch (error) {
       console.error('Error loading resources:', error)
     } finally {
@@ -99,70 +95,21 @@ export default function Dashboard() {
     }
   }
 
-  const filterResources = (filter: string) => {
-    setActiveFilter(filter)
-    let filtered = resources
-    
-    switch (filter) {
-      case 'pdf':
-        filtered = resources.filter(r => r.type === 'pdf')
-        break
-      case 'video':
-        filtered = resources.filter(r => r.type === 'video')
-        break
-      case 'accessed':
-        filtered = resources.filter(r => r.isAccessedByUser)
-        break
-      case 'locked':
-        filtered = resources.filter(r => !r.isAccessedByUser)
-        break
-      default:
-        filtered = resources
-    }
-    
-    setFilteredResources(filtered)
-  }
 
-  const handleAccessResource = async (resourceId: string, tokenCost: number) => {
-    if (!userStats || userStats.monthlyTokens.remaining < tokenCost) {
-      alert('Insufficient tokens to access this resource')
-      return
-    }
 
+  const handleAccessResource = async (resourceId: string) => {
     try {
       const response = await Axios.post(`/auth/access/${resourceId}`)
-      
-      // Update user stats after successful access
-      setUserStats(prev => prev ? {
-        ...prev,
-        monthlyTokens: {
-          ...prev.monthlyTokens,
-          remaining: response.data.remainingTokens,
-          used: prev.monthlyTokens.used + tokenCost
-        },
-        tokensUsedTotal: prev.tokensUsedTotal + tokenCost
-      } : null)
-
-      // Refresh user stats to get updated token data
       await loadUserStats()
-
-      // Open resource in new tab
+      
       if (response.data.resource.url) {
         window.open(response.data.resource.url, '_blank')
       }
-
-      alert(`Resource accessed! ${response.data.tokensUsed} tokens used. ${response.data.remainingTokens} tokens remaining.`)
+      
+      toast.success('Resource accessed successfully!')
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Failed to access resource'
-      if (errorMessage === 'Insufficient tokens') {
-        alert('You do not have enough monthly tokens to access this resource.')
-      } else if (errorMessage === 'Subscription expired or inactive') {
-        alert('Your subscription has expired or is inactive. Please renew to access resources.')
-      } else if (errorMessage === 'Resource not found') {
-        alert('This resource is no longer available.')
-      } else {
-        alert(errorMessage)
-      }
+      toast.error(errorMessage)
     }
   }
 
@@ -177,15 +124,6 @@ export default function Dashboard() {
       
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Welcome to Your 
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Dashboard</span>
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Access premium lead generation resources and master courses to accelerate your business growth
-          </p>
-        </div>
 
         {/* Welcome Message for New Subscribers */}
         {showWelcome && (
@@ -240,147 +178,201 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Resources Section */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Available Resources</h2>
-            <span className="text-sm text-gray-500">{filteredResources.length} resources</span>
-          </div>
-          
-          {/* Filter Tabs */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {[
-              { key: 'all', label: 'All', count: resources.length },
-              { key: 'pdf', label: 'PDFs', count: resources.filter(r => r.type === 'pdf').length },
-              { key: 'video', label: 'Videos', count: resources.filter(r => r.type === 'video').length },
-              { key: 'accessed', label: 'Accessed', count: resources.filter(r => r.isAccessedByUser).length },
-              { key: 'locked', label: 'Locked', count: resources.filter(r => !r.isAccessedByUser).length }
-            ].map((filter) => (
-              <button
-                key={filter.key}
-                onClick={() => filterResources(filter.key)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeFilter === filter.key
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {filter.label} ({filter.count})
-              </button>
-            ))}
-          </div>
-          {loading ? (
-            <div className="text-center py-8 text-gray-500">Loading resources...</div>
-          ) : filteredResources.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              {activeFilter === 'all' ? 'No resources available' : `No ${activeFilter} resources found`}
+        {/* Hero Sections */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          {/* Lead Information Section */}
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg p-6 border border-blue-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-blue-600 p-3 rounded-lg">
+                <Database className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Lead Information</h2>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredResources.map((resource) => (
-                <div key={resource.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                  {/* Preview Section */}
-                  <div className="relative h-48 bg-gray-100">
-                    {resource.type === 'video' && resource.url ? (
-                      <div className="relative w-full h-full">
-                        <video 
-                          className="w-full h-full object-cover"
-                          preload="metadata"
-                          onContextMenu={(e) => e.preventDefault()}
-                          onDragStart={(e) => e.preventDefault()}
-                          style={{ pointerEvents: resource.isAccessedByUser ? 'auto' : 'none' }}
-                        >
-                          <source src={resource.url} type="video/mp4" />
-                        </video>
-                        {!resource.isAccessedByUser && (
-                          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                            <div className="text-center text-white">
-                              <Lock className="w-8 h-8 mx-auto mb-2" />
-                              <p className="text-sm font-medium">Locked Content</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : resource.type === 'pdf' ? (
-                      <div className="relative w-full h-full bg-red-50 flex items-center justify-center">
-                        <div className="text-center">
-                          <svg className="w-16 h-16 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <p className="text-sm text-red-600 font-medium">PDF Document</p>
-                        </div>
-                        {!resource.isAccessedByUser && (
-                          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                            <div className="text-center text-white">
-                              <Lock className="w-8 h-8 mx-auto mb-2" />
-                              <p className="text-sm font-medium">Locked Content</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                        <div className="text-center text-gray-500">
-                          <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <p className="text-xs">No Preview</p>
-                        </div>
-                      </div>
-                    )}
+            <p className="text-gray-700 mb-4">Access verified business leads with complete contact details and social profiles.</p>
+            <button onClick={() => window.location.href = '/user/leads'} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full">
+              Browse Leads
+            </button>
+          </div>
+
+          {/* Accessed Leads Section */}
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-lg p-6 border border-green-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-green-600 p-3 rounded-lg">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Accessed Leads</h2>
+            </div>
+            <p className="text-gray-700 mb-4">View and manage all your unlocked leads with full contact information.</p>
+            <button onClick={() => window.location.href = '/user/leads?tab=accessed'} className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors w-full">
+              View Accessed
+            </button>
+          </div>
+
+          {/* External Tools Section */}
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-lg p-6 border border-purple-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-purple-600 p-3 rounded-lg">
+                <ExternalLink className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">External Tools</h2>
+            </div>
+            <p className="text-gray-700 mb-4">Explore powerful tools and integrations to boost your business growth.</p>
+            <button onClick={() => window.location.href = '/user/tools'} className="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors w-full">
+              Explore Tools
+            </button>
+          </div>
+
+          {/* Community Section */}
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-lg p-6 border border-orange-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-orange-600 p-3 rounded-lg">
+                <MessageCircle className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Community</h2>
+            </div>
+            <p className="text-gray-700 mb-4">Connect with other members, share insights, and grow together.</p>
+            <button onClick={() => window.location.href = '/user/community'} className="bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-orange-700 transition-colors w-full">
+              Join Community
+            </button>
+          </div>
+        </div>
+
+        {/* Resources Section */}
+        {loading ? (
+          <div className="text-center py-16">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-500 font-medium">Loading resources...</p>
+          </div>
+        ) : (
+          <div className="space-y-12">
+            {/* PDF Documents Section */}
+            {resources.filter(r => r.type === 'pdf').length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-red-100 p-3 rounded-xl">
+                      <FileText className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">PDF Documents</h2>
+                      <p className="text-sm text-gray-500">Downloadable guides and resources</p>
+                    </div>
                   </div>
-                  
-                  {/* Content Section */}
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-gray-900 text-sm">{resource.title}</h3>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        resource.type === 'pdf' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {resource.type.toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="text-gray-600 text-xs mb-4 line-clamp-2">{resource.description}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900">
-                        {resource.tokenCost} tokens
-                      </span>
-                      {resource.isAccessedByUser ? (
-                        <button 
-                          onClick={() => window.location.href = '/user/resources'}
-                          className="bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition-colors text-xs font-medium"
-                        >
-                          Accessed
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => handleAccessResource(resource.id, resource.tokenCost)}
-                          className={`px-3 py-1.5 rounded-lg transition-colors text-xs font-medium ${
-                            !userStats || userStats.monthlyTokens.remaining < resource.tokenCost
-                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
-                          }`}
-                          disabled={!userStats || userStats.monthlyTokens.remaining < resource.tokenCost}
-                        >
-                          {!userStats || userStats.monthlyTokens.remaining < resource.tokenCost ? 'No Tokens' : 'Unlock'}
-                        </button>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <span className="bg-red-100 text-red-700 px-4 py-2 rounded-full text-sm font-semibold">
+                      {resources.filter(r => r.type === 'pdf').length} PDFs
+                    </span>
+                    <button onClick={() => window.location.href = '/user/resources?type=pdf'} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
+                      View Accessed
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {resources.filter(r => r.type === 'pdf').map((resource) => (
+                    <div key={resource.id} onClick={() => window.location.href = `/user/resource/${resource.id}`} className="group bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer">
+                      <div className="relative h-48 bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="bg-white rounded-2xl p-5 shadow-md mx-auto w-fit">
+                            <FileText className="w-16 h-16 text-red-500" />
+                          </div>
+                        </div>
+                        {!resource.isAccessedByUser && (
+                          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                            <div className="text-center text-white">
+                              <Lock className="w-8 h-8 mx-auto mb-2" />
+                              <p className="text-sm font-semibold">Locked</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-5">
+                        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-1">{resource.title}</h3>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{resource.description}</p>
+                        <div className="flex justify-end">
+                          <span className={`px-4 py-2 rounded-lg text-sm font-semibold ${resource.isAccessedByUser ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                            {resource.isAccessedByUser ? '✓ Accessed' : '🔓 Click to Unlock'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Video Courses Section */}
+            {resources.filter(r => r.type === 'video').length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 p-3 rounded-xl">
+                      <Play className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">Video Courses</h2>
+                      <p className="text-sm text-gray-500">Master courses and tutorials</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold">
+                      {resources.filter(r => r.type === 'video').length} Videos
+                    </span>
+                    <button onClick={() => window.location.href = '/user/resources?type=video'} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+                      View Accessed
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {resources.filter(r => r.type === 'video').map((resource) => (
+                    <div key={resource.id} onClick={() => window.location.href = `/user/resource/${resource.id}`} className="group bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer">
+                      <div className="relative h-48 bg-gradient-to-br from-blue-100 to-purple-100">
+                        {resource.url && (
+                          <video className="w-full h-full object-cover" preload="metadata" onContextMenu={(e) => e.preventDefault()} style={{ pointerEvents: 'none' }}>
+                            <source src={resource.url} type="video/mp4" />
+                          </video>
+                        )}
+                        {!resource.isAccessedByUser && (
+                          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                            <div className="text-center text-white">
+                              <Lock className="w-8 h-8 mx-auto mb-2" />
+                              <p className="text-sm font-semibold">Locked</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-5">
+                        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-1">{resource.title}</h3>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{resource.description}</p>
+                        <div className="flex justify-end">
+                          <span className={`px-4 py-2 rounded-lg text-sm font-semibold ${resource.isAccessedByUser ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'}`}>
+                            {resource.isAccessedByUser ? '✓ Accessed' : '🔓 Click to Unlock'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {resources.length === 0 && (
+              <div className="text-center py-16 bg-white rounded-2xl">
+                <div className="text-6xl mb-4">📭</div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">No Resources Available</h3>
+                <p className="text-gray-500">Check back later for new content</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Subscription Status */}
         {userStats && !userStats.subscription.isActive && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-8">
             <div className="flex items-center">
               <div className="text-yellow-600 mr-3">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
+                <AlertTriangle className="w-6 h-6" />
+
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-yellow-800">Subscription Required</h3>
@@ -426,5 +418,21 @@ export default function Dashboard() {
 
       <Footer />
     </div>
+  )
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-500 font-medium">Loading dashboard...</p>
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   )
 }
