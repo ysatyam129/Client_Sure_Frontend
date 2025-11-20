@@ -34,6 +34,21 @@ interface UserProfile {
   }
 }
 
+interface Notification {
+  _id: string
+  message: string
+  type: string
+  isRead: boolean
+  createdAt: string
+  fromUser?: {
+    name: string
+    avatar?: string
+  }
+  postId?: {
+    post_title: string
+  }
+}
+
 export default function ProfilePage() {
   const [activeSection, setActiveSection] = useState('Account Details')
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -42,16 +57,31 @@ export default function ProfilePage() {
   const [editName, setEditName] = useState('')
   const [editPhone, setEditPhone] = useState('')
   const [avatarPreview, setAvatarPreview] = useState('')
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [notificationCount, setNotificationCount] = useState(0)
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   const loadUserProfile = async () => {
     try {
       const response = await Axios.get('/auth/profile')
-      setUserProfile(response.data)
-      setEditName(response.data.name || '')
-      setEditPhone(response.data.phone || '')
-      setAvatarPreview(response.data.avatar || '')
+      console.log('Profile API response:', response.data)
+      
+      // Backend returns nested structure: { user: {...}, tokens: {...}, subscription: {...} }
+      const profileData = {
+        name: response.data.user.name,
+        email: response.data.user.email,
+        phone: response.data.user.phone,
+        avatar: response.data.user.avatar,
+        tokens: response.data.tokens,
+        subscription: response.data.subscription
+      }
+      
+      setUserProfile(profileData)
+      setEditName(response.data.user.name || '')
+      setEditPhone(response.data.user.phone || '')
+      setAvatarPreview(response.data.user.avatar || '')
     } catch (error) {
       console.error('Error loading user profile:', error)
     } finally {
@@ -101,7 +131,52 @@ export default function ProfilePage() {
 
   useEffect(() => {
     loadUserProfile()
-  }, [])
+    if (activeSection === 'Notifications') {
+      loadNotifications()
+    }
+  }, [activeSection])
+
+  const loadNotifications = async () => {
+    setNotificationsLoading(true)
+    try {
+      const [countRes, notificationsRes] = await Promise.all([
+        Axios.get('/notifications/count'),
+        Axios.get('/notifications?limit=20')
+      ])
+      setNotificationCount(countRes.data.count || 0)
+      setNotifications(notificationsRes.data.notifications || [])
+    } catch (error) {
+      console.error('Error loading notifications:', error)
+      setNotificationCount(0)
+      setNotifications([])
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }
+
+  const markAllAsRead = async () => {
+    try {
+      await Axios.put('/notifications/mark-all-read')
+      setNotificationCount(0)
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+      toast.success('All notifications marked as read')
+    } catch (error) {
+      console.error('Error marking notifications as read:', error)
+      toast.error('Error marking notifications as read')
+    }
+  }
+
+  const getTimeAgo = (dateString: string) => {
+    const now = new Date()
+    const date = new Date(dateString)
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+    
+    if (diffInSeconds < 60) return 'just now'
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`
+    return date.toLocaleDateString()
+  }
 
   const sidebarItems = [
     { name: 'Account Details', icon: User },
@@ -502,37 +577,88 @@ export default function ProfilePage() {
             
               {activeSection === 'Notifications' && (
                 <div>
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start">
-                      <div className="bg-blue-600 rounded-full p-2 mr-4">
-                        <span className="text-white text-xl">🔔</span>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 mb-1">Welcome to ClientSure!</h4>
-                        <p className="text-gray-600 text-sm">Your account has been successfully created. Start exploring premium features.</p>
-                        <span className="text-xs text-gray-500 mt-2 block">2 days ago</span>
-                      </div>
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Your Notifications</h3>
+                      <p className="text-sm text-gray-600">Stay updated with community activities and system updates</p>
                     </div>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start">
-                      <div className="bg-green-600 rounded-full p-2 mr-4">
-                        <span className="text-white text-xl">✓</span>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 mb-1">Subscription Activated</h4>
-                        <p className="text-gray-600 text-sm">Your subscription is now active. Enjoy unlimited access to all features.</p>
-                        <span className="text-xs text-gray-500 mt-2 block">3 days ago</span>
-                      </div>
+                    {notificationCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors"
+                      >
+                        Mark All Read ({notificationCount})
+                      </button>
+                    )}
+                  </div>
+
+                  {notificationsLoading ? (
+                    <div className="text-center py-12">
+                      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading notifications...</p>
                     </div>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-start">
-                      <div className="bg-gray-600 rounded-full p-2 mr-4">
-                        <span className="text-white text-xl">📊</span>
+                  ) : notifications.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Bell className="w-8 h-8 text-gray-400" />
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 mb-1">Monthly Token Reset</h4>
-                        <p className="text-gray-600 text-sm">Your monthly tokens have been refreshed. You now have full allocation available.</p>
-                        <span className="text-xs text-gray-500 mt-2 block">1 week ago</span>
-                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications yet</h3>
+                      <p className="text-gray-600">When you receive notifications, they'll appear here</p>
                     </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {notifications.map((notification) => (
+                        <div
+                          key={notification._id}
+                          className={`border rounded-lg p-4 transition-all hover:shadow-md cursor-pointer ${
+                            !notification.isRead 
+                              ? 'bg-blue-50 border-blue-200' 
+                              : 'bg-white border-gray-200'
+                          }`}
+                          onClick={() => {
+                            router.push('/user/community')
+                          }}
+                        >
+                          <div className="flex items-start space-x-4">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                              {notification.fromUser?.name?.charAt(0).toUpperCase() || 'N'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900 mb-1">
+                                    {notification.message}
+                                  </p>
+                                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {getTimeAgo(notification.createdAt)}
+                                    </span>
+                                    {notification.type && (
+                                      <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
+                                        {notification.type.replace('_', ' ')}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                {!notification.isRead && (
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-6 text-center">
+                    <button
+                      onClick={() => router.push('/user/community')}
+                      className="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors"
+                    >
+                      View Community for More Activity →
+                    </button>
                   </div>
                 </div>
               )}

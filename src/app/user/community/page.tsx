@@ -54,13 +54,41 @@ export default function CommunityPage() {
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [showTrending, setShowTrending] = useState(false)
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false)
+  const [searchFilters, setSearchFilters] = useState({
+    author: '',
+    hasImage: false,
+    dateFrom: '',
+    dateTo: '',
+    sortBy: 'latest',
+    minLikes: 0
+  })
   const [communityStats, setCommunityStats] = useState<any>({})
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const router = useRouter()
 
   useEffect(() => {
     fetchData()
     getCurrentUser()
+    
+    // Auto-refresh every 60 seconds (silent)
+    const refreshInterval = setInterval(() => {
+      fetchData(true) // Silent refresh
+    }, 60000)
+    
+    // Refresh when window gets focus (silent)
+    const handleWindowFocus = () => {
+      fetchData(true) // Silent refresh
+    }
+    
+    window.addEventListener('focus', handleWindowFocus)
+    
+    return () => {
+      clearInterval(refreshInterval)
+      window.removeEventListener('focus', handleWindowFocus)
+    }
   }, [])
 
   const getCurrentUser = async () => {
@@ -72,10 +100,24 @@ export default function CommunityPage() {
     }
   }
 
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     try {
-      const endpoint = showTrending ? '/community/trending' : '/community/posts'
-      const params = searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''
+      if (!silent) setLoading(true)
+      
+      let endpoint = showTrending ? '/community/trending' : '/community/posts'
+      
+      // Build query parameters
+      const queryParams = new URLSearchParams()
+      
+      if (searchQuery) queryParams.append('search', searchQuery)
+      if (searchFilters.author) queryParams.append('author', searchFilters.author)
+      if (searchFilters.hasImage) queryParams.append('hasImage', 'true')
+      if (searchFilters.dateFrom) queryParams.append('dateFrom', searchFilters.dateFrom)
+      if (searchFilters.dateTo) queryParams.append('dateTo', searchFilters.dateTo)
+      if (searchFilters.sortBy) queryParams.append('sortBy', searchFilters.sortBy)
+      if (searchFilters.minLikes > 0) queryParams.append('minLikes', searchFilters.minLikes.toString())
+      
+      const params = queryParams.toString() ? `?${queryParams.toString()}` : ''
       
       const [postsRes, leaderboardRes, statsRes] = await Promise.all([
         Axios.get(`${endpoint}${params}`),
@@ -85,16 +127,30 @@ export default function CommunityPage() {
       setPosts(postsRes.data.posts)
       setLeaderboard(leaderboardRes.data.leaderboard)
       setCommunityStats(statsRes.data)
+      setLastUpdated(new Date())
     } catch (error: any) {
       if (error.response?.status === 403) {
         toast.error('Subscription expired. Please renew to access community.')
         router.push('/user/dashboard')
       } else {
-        toast.error('Error loading community data')
+        if (!silent) toast.error('Error loading community data')
       }
     } finally {
       setLoading(false)
     }
+  }
+
+  const resetFilters = () => {
+    setSearchFilters({
+      author: '',
+      hasImage: false,
+      dateFrom: '',
+      dateTo: '',
+      sortBy: 'latest',
+      minLikes: 0
+    })
+    setSearchQuery('')
+    fetchData(false)
   }
 
   const createPost = async (e: React.FormEvent) => {
@@ -107,16 +163,25 @@ export default function CommunityPage() {
         formData.append('image', selectedImage)
       }
 
-      await Axios.post('/community/post', formData, {
+      const response = await Axios.post('/community/post', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-      toast.success('Post created successfully! (+5 points)')
+      
+      if (response.data.success) {
+        toast.success('Post created successfully! (+5 points) ✨')
+      } else {
+        toast.success('Post created successfully! (+5 points)')
+      }
+      
       setNewPost({ title: '', description: '' })
       setSelectedImage(null)
+      setImagePreview(null)
       setShowCreatePost(false)
-      fetchData()
-    } catch (error) {
-      toast.error('Error creating post')
+      fetchData(false)
+    } catch (error: any) {
+      console.error('Create post error:', error)
+      const errorMessage = error.response?.data?.message || 'Error creating post'
+      toast.error(errorMessage)
     }
   }
 
@@ -124,7 +189,7 @@ export default function CommunityPage() {
     try {
       await Axios.delete(`/community/post/${postId}`)
       toast.success('Post deleted (-5 points)')
-      fetchData()
+      fetchData(false)
     } catch (error) {
       toast.error('Error deleting post')
     }
@@ -132,21 +197,76 @@ export default function CommunityPage() {
 
   const likePost = async (postId: string) => {
     try {
+      const post = posts.find(p => p._id === postId)
+      if (!post || isLikedByUser(post)) {
+        toast.error('Post already liked')
+        return
+      }
+      
+      // Optimistic update - immediately update UI
+      setPosts(prevPosts => 
+        prevPosts.map(p => 
+          p._id === postId 
+            ? { ...p, likes: [...p.likes, { user_id: currentUserId }] }
+            : p
+        )
+      )
+      
       await Axios.post(`/community/like/${postId}`)
       toast.success('Post liked! (+1 point to author)')
-      fetchData()
+      fetchData(true) // Sync with backend
     } catch (error: any) {
+      // Revert optimistic update on error
+      setPosts(prevPosts => 
+        prevPosts.map(p => 
+          p._id === postId 
+            ? { ...p, likes: p.likes.filter(like => 
+                typeof like.user_id === 'string' 
+                  ? like.user_id !== currentUserId 
+                  : like.user_id.toString() !== currentUserId
+              ) }
+            : p
+        )
+      )
       toast.error(error.response?.data?.message || 'Error liking post')
     }
   }
 
   const unlikePost = async (postId: string) => {
     try {
+      const post = posts.find(p => p._id === postId)
+      if (!post || !isLikedByUser(post)) {
+        toast.error('You have not liked this post yet')
+        return
+      }
+      
+      // Optimistic update - immediately update UI
+      setPosts(prevPosts => 
+        prevPosts.map(p => 
+          p._id === postId 
+            ? { ...p, likes: p.likes.filter(like => 
+                typeof like.user_id === 'string' 
+                  ? like.user_id !== currentUserId 
+                  : like.user_id.toString() !== currentUserId
+              ) }
+            : p
+        )
+      )
+      
       await Axios.post(`/community/unlike/${postId}`)
       toast.success('Post unliked (-1 point from author)')
-      fetchData()
-    } catch (error) {
-      toast.error('Error unliking post')
+      fetchData(true) // Sync with backend
+    } catch (error: any) {
+      // Revert optimistic update on error
+      setPosts(prevPosts => 
+        prevPosts.map(p => 
+          p._id === postId 
+            ? { ...p, likes: [...p.likes, { user_id: currentUserId }] }
+            : p
+        )
+      )
+      const errorMessage = error.response?.data?.message || 'Error unliking post'
+      toast.error(errorMessage)
     }
   }
 
@@ -158,7 +278,7 @@ export default function CommunityPage() {
       await Axios.post(`/community/comment/${postId}`, { text })
       toast.success('Comment added! (+2 points)')
       setCommentTexts({ ...commentTexts, [postId]: '' })
-      fetchData()
+      fetchData(false)
     } catch (error) {
       toast.error('Error adding comment')
     }
@@ -168,14 +288,21 @@ export default function CommunityPage() {
     try {
       await Axios.delete(`/community/comment/${commentId}`)
       toast.success('Comment deleted (-2 points)')
-      fetchData()
+      fetchData(false)
     } catch (error) {
       toast.error('Error deleting comment')
     }
   }
 
   const isLikedByUser = (post: Post) => {
-    return post.likes.some(like => like.user_id === currentUserId)
+    if (!currentUserId) return false
+    
+    return post.likes.some(like => {
+      const likeUserId = typeof like.user_id === 'string' 
+        ? like.user_id 
+        : like.user_id.toString()
+      return likeUserId === currentUserId
+    })
   }
 
   const getTimeAgo = (dateString: string) => {
@@ -223,25 +350,38 @@ export default function CommunityPage() {
                     <div>
                       <h1 className="text-2xl font-bold mb-1">Community Hub</h1>
                       <p className="text-white/90">{communityStats.totalPosts || 0} posts • {communityStats.activeMembers || 0} active members</p>
+                      <p className="text-white/70 text-sm">Last updated: {lastUpdated.toLocaleTimeString()} • Auto-refreshes every minute</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search discussions..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && fetchData()}
-                        className="pl-10 pr-4 py-3 rounded-xl text-gray-900 w-72 bg-white/90 backdrop-blur-sm border-0 focus:outline-none focus:ring-2 focus:ring-white/50 shadow-lg"
-                      />
-                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                        🔍
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search discussions..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && fetchData(false)}
+                          className="pl-10 pr-4 py-3 rounded-xl text-gray-900 w-72 bg-white/90 backdrop-blur-sm border-0 focus:outline-none focus:ring-2 focus:ring-white/50 shadow-lg"
+                        />
+                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                          🔍
+                        </div>
                       </div>
+                      <button
+                        onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+                        className={`px-4 py-3 rounded-xl font-semibold transition-all shadow-lg ${
+                          showAdvancedSearch 
+                            ? 'bg-white text-indigo-600 hover:bg-gray-50' 
+                            : 'bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm'
+                        }`}
+                      >
+                        🔧 Filters
+                      </button>
                     </div>
                     <button
-                      onClick={() => { setShowTrending(!showTrending); fetchData(); }}
+                      onClick={() => { setShowTrending(!showTrending); fetchData(false); }}
                       className={`px-6 py-3 rounded-xl font-semibold transition-all shadow-lg ${
                         showTrending 
                           ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-300' 
@@ -250,10 +390,106 @@ export default function CommunityPage() {
                     >
                       {showTrending ? '🔥 Trending' : '📅 Latest'}
                     </button>
+                    <button
+                      onClick={() => {
+                        fetchData(false)
+                        toast.success('Community refreshed!')
+                      }}
+                      className="px-6 py-3 rounded-xl font-semibold transition-all shadow-lg bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm"
+                      title="Refresh community posts"
+                    >
+                      🔄 Refresh
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Advanced Search Filters */}
+            {showAdvancedSearch && (
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 mb-6 overflow-hidden">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    🔧 Advanced Search Filters
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                      <select
+                        value={searchFilters.sortBy}
+                        onChange={(e) => setSearchFilters({...searchFilters, sortBy: e.target.value})}
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none"
+                      >
+                        <option value="latest">Latest</option>
+                        <option value="popular">Most Liked</option>
+                        <option value="trending">Trending</option>
+                        <option value="oldest">Oldest</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+                      <input
+                        type="date"
+                        value={searchFilters.dateFrom}
+                        onChange={(e) => setSearchFilters({...searchFilters, dateFrom: e.target.value})}
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+                      <input
+                        type="date"
+                        value={searchFilters.dateTo}
+                        onChange={(e) => setSearchFilters({...searchFilters, dateTo: e.target.value})}
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Likes</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={searchFilters.minLikes}
+                        onChange={(e) => setSearchFilters({...searchFilters, minLikes: parseInt(e.target.value) || 0})}
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none"
+                        placeholder="0"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={searchFilters.hasImage}
+                          onChange={(e) => setSearchFilters({...searchFilters, hasImage: e.target.checked})}
+                          className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Posts with images only</span>
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 mt-6">
+                    <button
+                      onClick={() => fetchData(false)}
+                      className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl font-semibold transition-all shadow-lg"
+                    >
+                      Apply Filters
+                    </button>
+                    <button
+                      onClick={resetFilters}
+                      className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-semibold transition-colors"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Create Post */}
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 mb-6 overflow-hidden">
@@ -291,14 +527,36 @@ export default function CommunityPage() {
                           <input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null
+                              setSelectedImage(file)
+                              if (file) {
+                                const reader = new FileReader()
+                                reader.onload = (e) => setImagePreview(e.target?.result as string)
+                                reader.readAsDataURL(file)
+                              } else {
+                                setImagePreview(null)
+                              }
+                            }}
                             className="hidden"
                           />
                         </label>
                         {selectedImage && (
-                          <span className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                            ✅ Image selected
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                              ✅ {selectedImage.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedImage(null)
+                                setImagePreview(null)
+                              }}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         )}
                       </div>
                       
@@ -318,6 +576,30 @@ export default function CommunityPage() {
                         </button>
                       </div>
                     </div>
+                    
+                    {/* Image Preview */}
+                    {imagePreview && (
+                      <div className="mt-4">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Image Preview:</p>
+                        <div className="relative inline-block">
+                          <img 
+                            src={imagePreview} 
+                            alt="Preview" 
+                            className="max-w-xs max-h-48 rounded-lg shadow-md object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedImage(null)
+                              setImagePreview(null)
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </form>
               ) : (
@@ -393,14 +675,20 @@ export default function CommunityPage() {
                       {/* Post Actions */}
                       <div className="flex items-center gap-6 mb-6 pb-4 border-b border-gray-100">
                         <button
-                          onClick={() => isLikedByUser(post) ? unlikePost(post._id) : likePost(post._id)}
+                          onClick={() => {
+                            if (isLikedByUser(post)) {
+                              unlikePost(post._id)
+                            } else {
+                              likePost(post._id)
+                            }
+                          }}
                           className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all font-semibold ${
                             isLikedByUser(post) 
                               ? 'bg-red-50 text-red-600 hover:bg-red-100' 
                               : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                           }`}
                         >
-                          ❤️ <span>{post.likes.length}</span>
+                          {isLikedByUser(post) ? '❤️' : '🤍'} <span>{post.likes.length}</span>
                         </button>
                         <div className="flex items-center gap-3 text-gray-500 font-semibold">
                           💬 <span>{post.comments.length}</span>

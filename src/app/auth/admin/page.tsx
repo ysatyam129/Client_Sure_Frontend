@@ -25,6 +25,11 @@ export default function AdminLoginPage() {
         password: formData.password
       })
       
+      // Store admin token in localStorage for AdminAPI
+      if (response.data.token) {
+        localStorage.setItem('adminToken', response.data.token)
+      }
+      
       // Redirect to admin dashboard on success
       toast.success('Admin login successful!')
       router.push('/admin/dashboard')
