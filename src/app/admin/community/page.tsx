@@ -29,8 +29,23 @@ interface Post {
   createdAt: string
 }
 
+interface LeaderboardUser {
+  _id: string
+  name: string
+  avatar?: string
+  points: number
+  communityActivity: {
+    postsCreated: number
+    commentsMade: number
+    likesGiven: number
+    likesReceived: number
+  }
+}
+
 export default function AdminCommunityPage() {
   const [posts, setPosts] = useState<Post[]>([])
+  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([])
+  const [communityStats, setCommunityStats] = useState<any>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -56,36 +71,69 @@ export default function AdminCommunityPage() {
 
   const fetchPosts = async () => {
     try {
-      console.log('Fetching admin community posts...')
-      const response = await AdminAPI.get('/community/all')
-      console.log('Community API Response:', response)
+      console.log('Fetching admin community data...')
       
-      // Handle different response formats
-      if (response && response.success && response.posts && Array.isArray(response.posts)) {
-        setPosts(response.posts)
-        console.log(`Loaded ${response.posts.length} posts successfully`)
-        if (response.posts.length === 0) {
+      // Fetch posts, leaderboard, and stats in parallel
+      const [postsResponse, leaderboardResponse, statsResponse] = await Promise.all([
+        AdminAPI.get('/community/all'),
+        AdminAPI.get('/community/leaderboard').catch(() => ({ data: { leaderboard: [] } })),
+        AdminAPI.get('/community/stats').catch(() => ({ data: {} }))
+      ])
+      
+      console.log('Community API Response:', postsResponse)
+      
+      // Handle posts response
+      if (postsResponse && postsResponse.success && postsResponse.posts && Array.isArray(postsResponse.posts)) {
+        setPosts(postsResponse.posts)
+        console.log(`Loaded ${postsResponse.posts.length} posts successfully`)
+        if (postsResponse.posts.length === 0) {
           toast.info('No community posts found')
         }
-      } else if (response && response.posts && Array.isArray(response.posts)) {
-        setPosts(response.posts)
-        console.log(`Loaded ${response.posts.length} posts`)
-      } else if (response && response.data && response.data.posts && Array.isArray(response.data.posts)) {
-        setPosts(response.data.posts)
-        console.log(`Loaded ${response.data.posts.length} posts`)
-      } else if (response && response.error) {
-        console.error('API Error:', response.error)
+      } else if (postsResponse && postsResponse.posts && Array.isArray(postsResponse.posts)) {
+        setPosts(postsResponse.posts)
+        console.log(`Loaded ${postsResponse.posts.length} posts`)
+      } else if (postsResponse && postsResponse.data && postsResponse.data.posts && Array.isArray(postsResponse.data.posts)) {
+        setPosts(postsResponse.data.posts)
+        console.log(`Loaded ${postsResponse.data.posts.length} posts`)
+      } else if (postsResponse && postsResponse.error) {
+        console.error('API Error:', postsResponse.error)
         toast.error('Failed to load community posts. Please login as admin first.')
         setPosts([])
       } else {
-        console.error('Unexpected response format:', response)
+        console.error('Unexpected response format:', postsResponse)
         toast.error('Please login as admin to access community moderation')
         setPosts([])
       }
+      
+      // Handle leaderboard response
+      if (leaderboardResponse && leaderboardResponse.success && leaderboardResponse.leaderboard) {
+        setLeaderboard(leaderboardResponse.leaderboard)
+        console.log(`Loaded ${leaderboardResponse.leaderboard.length} leaderboard entries`)
+      } else if (leaderboardResponse && leaderboardResponse.data && leaderboardResponse.data.leaderboard) {
+        setLeaderboard(leaderboardResponse.data.leaderboard)
+        console.log(`Loaded ${leaderboardResponse.data.leaderboard.length} leaderboard entries`)
+      }
+      
+      // Handle stats response
+      if (statsResponse && statsResponse.success) {
+        setCommunityStats({
+          totalPosts: statsResponse.totalPosts,
+          totalComments: statsResponse.totalComments,
+          totalLikes: statsResponse.totalLikes,
+          activeMembers: statsResponse.activeMembers
+        })
+        console.log('Loaded community stats')
+      } else if (statsResponse && statsResponse.data) {
+        setCommunityStats(statsResponse.data)
+        console.log('Loaded community stats')
+      }
+      
     } catch (error) {
-      console.error('Error loading community posts:', error)
-      toast.error('Error loading community posts. Please check your connection.')
+      console.error('Error loading community data:', error)
+      toast.error('Error loading community data. Please check your connection.')
       setPosts([])
+      setLeaderboard([])
+      setCommunityStats({})
     } finally {
       setLoading(false)
     }
@@ -159,7 +207,9 @@ export default function AdminCommunityPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">All Community Posts</h2>
-                  <p className="text-sm text-gray-500 mt-1">Total posts: {posts.length} • Auto-refreshes every 30s</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Total posts: {posts.length} • Active members: {communityStats.activeMembers || 0} • Auto-refreshes every 30s
+                  </p>
                 </div>
                 <button
                   onClick={() => {
@@ -250,6 +300,54 @@ export default function AdminCommunityPage() {
                     )}
                   </div>
                 ))
+              )}
+            </div>
+          </div>
+          
+          {/* Leaderboard Section */}
+          <div className="bg-white rounded-lg shadow-md mt-6">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                🏆 Community Leaderboard
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">Top community members by points</p>
+            </div>
+            
+            <div className="p-6">
+              {leaderboard.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">🏆</div>
+                  <p>No leaderboard data available</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {leaderboard.slice(0, 12).map((user, index) => (
+                    <div key={user._id} className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className={`text-lg font-bold w-10 h-10 rounded-lg flex items-center justify-center ${
+                        index === 0 ? 'bg-yellow-100 text-yellow-600' :
+                        index === 1 ? 'bg-gray-100 text-gray-600' :
+                        index === 2 ? 'bg-orange-100 text-orange-600' :
+                        'bg-blue-50 text-blue-600'
+                      }`}>
+                        #{index + 1}
+                      </div>
+                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 truncate">{user.name}</div>
+                        <div className="text-sm text-gray-500">
+                          {user.points} points • {user.communityActivity.postsCreated} posts
+                        </div>
+                      </div>
+                      {index < 3 && (
+                        <div className="text-xl">
+                          {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
