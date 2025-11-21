@@ -22,8 +22,14 @@ export default function PurchaseModal({ isOpen, onClose, plan }: PurchaseModalPr
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    phone: ""
+    phone: "",
+    referralCode: ""
   })
+  const [referralValidation, setReferralValidation] = useState<{
+    isValid: boolean | null
+    referrerName: string | null
+    isChecking: boolean
+  }>({ isValid: null, referrerName: null, isChecking: false })
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
@@ -57,7 +63,8 @@ export default function PurchaseModal({ isOpen, onClose, plan }: PurchaseModalPr
         email: formData.email,
         phone: formData.phone,
         planPrice: plan.price,
-        planName: plan.name
+        planName: plan.name,
+        referralCode: formData.referralCode || null
       })
       
       // Redirect to payment gateway instead of login
@@ -151,6 +158,60 @@ export default function PurchaseModal({ isOpen, onClose, plan }: PurchaseModalPr
               className="w-full px-5 py-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg text-black bg-white"
               required
             />
+          </div>
+
+          {/* Referral Code */}
+          <div>
+            <label className="block text-black font-semibold mb-3 text-lg">
+              Referral Code <span className="text-gray-500">(Optional)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Enter referral code if you have one"
+              value={formData.referralCode}
+              onChange={async (e) => {
+                const code = e.target.value.toUpperCase()
+                setFormData({...formData, referralCode: code})
+                
+                if (code.length >= 6) {
+                  setReferralValidation({ isValid: null, referrerName: null, isChecking: true })
+                  try {
+                    const response = await Axios.get(`/referrals/validate/${code}`)
+                    if (response.data.valid) {
+                      setReferralValidation({ 
+                        isValid: true, 
+                        referrerName: response.data.referrer.name,
+                        isChecking: false 
+                      })
+                    } else {
+                      setReferralValidation({ isValid: false, referrerName: null, isChecking: false })
+                    }
+                  } catch (error) {
+                    setReferralValidation({ isValid: false, referrerName: null, isChecking: false })
+                  }
+                } else {
+                  setReferralValidation({ isValid: null, referrerName: null, isChecking: false })
+                }
+              }}
+              className={`w-full px-5 py-4 border rounded-lg focus:outline-none focus:ring-2 text-lg text-black bg-white ${
+                referralValidation.isValid === true ? 'border-green-500 focus:ring-green-500' :
+                referralValidation.isValid === false ? 'border-red-500 focus:ring-red-500' :
+                'border-gray-200 focus:ring-blue-500'
+              }`}
+            />
+            {referralValidation.isChecking && (
+              <p className="text-blue-600 text-sm mt-2">Validating referral code...</p>
+            )}
+            {referralValidation.isValid === true && (
+              <p className="text-green-600 text-sm mt-2">
+                ✓ Valid referral code from {referralValidation.referrerName}
+              </p>
+            )}
+            {referralValidation.isValid === false && formData.referralCode && (
+              <p className="text-red-600 text-sm mt-2">
+                ✗ Invalid referral code
+              </p>
+            )}
           </div>
 
           {/* Buttons */}

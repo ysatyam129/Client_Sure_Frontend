@@ -32,6 +32,31 @@ interface UserProfile {
     endDate: string
     isActive: boolean
   }
+  referralCode?: string
+  referralStats?: {
+    totalReferrals: number
+    activeReferrals: number
+    totalEarnings: number
+  }
+}
+
+interface ReferralData {
+  referralCode: string
+  stats: {
+    totalReferrals: number
+    activeReferrals: number
+    totalEarnings: number
+  }
+  referrals: Array<{
+    user: {
+      name: string
+      email: string
+      createdAt: string
+    }
+    joinedAt: string
+    isActive: boolean
+    subscriptionStatus: string
+  }>
 }
 
 interface Notification {
@@ -60,6 +85,8 @@ export default function ProfilePage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [notificationCount, setNotificationCount] = useState(0)
   const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [referralData, setReferralData] = useState<ReferralData | null>(null)
+  const [referralLoading, setReferralLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -134,6 +161,9 @@ export default function ProfilePage() {
     if (activeSection === 'Notifications') {
       loadNotifications()
     }
+    if (activeSection === 'Referral Code') {
+      loadReferralData()
+    }
   }, [activeSection])
 
   const loadNotifications = async () => {
@@ -163,6 +193,26 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Error marking notifications as read:', error)
       toast.error('Error marking notifications as read')
+    }
+  }
+
+  const loadReferralData = async () => {
+    setReferralLoading(true)
+    try {
+      const response = await Axios.get('/referrals/my-referrals')
+      setReferralData(response.data)
+    } catch (error) {
+      console.error('Error loading referral data:', error)
+      toast.error('Failed to load referral data')
+    } finally {
+      setReferralLoading(false)
+    }
+  }
+
+  const copyReferralCode = () => {
+    if (referralData?.referralCode) {
+      navigator.clipboard.writeText(referralData.referralCode)
+      toast.success('Referral code copied to clipboard!')
     }
   }
 
@@ -665,30 +715,92 @@ export default function ProfilePage() {
             
               {activeSection === 'Referral Code' && (
                 <div>
-                  <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-lg p-8 text-white mb-6 shadow-lg">
-                    <div className="text-center">
-                      <h3 className="text-3xl font-bold mb-2">Refer & Earn</h3>
-                      <p className="text-green-100 mb-6">Share your referral code and earn rewards</p>
-                      <div className="bg-white bg-opacity-20 rounded-lg p-4 inline-block">
-                        <div className="text-sm text-green-600 mb-1">Your Referral Code</div>
-                        <div className="text-3xl text-black font-bold tracking-wider">REF{userProfile?.email.substring(0, 6).toUpperCase()}</div>
+                  {referralLoading ? (
+                    <div className="text-center py-12">
+                      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading referral data...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-lg p-8 text-white mb-6 shadow-lg">
+                        <div className="text-center">
+                          <h3 className="text-3xl font-bold mb-2">Refer & Earn</h3>
+                          <p className="text-green-100 mb-6">Share your referral code and earn rewards</p>
+                          <div className="bg-white bg-opacity-20 rounded-lg p-4 inline-block">
+                            <div className="text-sm text-green-800 mb-1">Your Referral Code</div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-3xl font-bold tracking-wider text-green-800">
+                                {referralData?.referralCode || 'Loading...'}
+                              </div>
+                              {referralData?.referralCode && (
+                                <button
+                                  onClick={copyReferralCode}
+                                  className="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition-colors"
+                                  title="Copy referral code"
+                                >
+                                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white border border-gray-200 rounded-lg p-6 text-center shadow-sm">
-                      <div className="text-4xl font-bold text-blue-600 mb-2">0</div>
-                      <div className="text-gray-600 font-medium">Total Referrals</div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-6 text-center shadow-sm">
-                      <div className="text-4xl font-bold text-green-600 mb-2">0</div>
-                      <div className="text-gray-600 font-medium">Active Referrals</div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-6 text-center shadow-sm">
-                      <div className="text-4xl font-bold text-purple-600 mb-2">$0</div>
-                      <div className="text-gray-600 font-medium">Earnings</div>
-                    </div>
-                  </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 text-center shadow-sm">
+                          <div className="text-4xl font-bold text-blue-600 mb-2">
+                            {referralData?.stats.totalReferrals || 0}
+                          </div>
+                          <div className="text-gray-600 font-medium">Total Referrals</div>
+                        </div>
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 text-center shadow-sm">
+                          <div className="text-4xl font-bold text-green-600 mb-2">
+                            {referralData?.stats.activeReferrals || 0}
+                          </div>
+                          <div className="text-gray-600 font-medium">Active Referrals</div>
+                        </div>
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 text-center shadow-sm">
+                          <div className="text-4xl font-bold text-purple-600 mb-2">
+                            ₹{referralData?.stats.totalEarnings || 0}
+                          </div>
+                          <div className="text-gray-600 font-medium">Earnings</div>
+                        </div>
+                      </div>
+
+                      {referralData?.referrals && referralData.referrals.length > 0 && (
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Your Referrals</h4>
+                          <div className="space-y-3">
+                            {referralData.referrals.map((referral, index) => (
+                              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                <div>
+                                  <div className="font-medium text-gray-900">{referral.user.name}</div>
+                                  <div className="text-sm text-gray-600">{referral.user.email}</div>
+                                  <div className="text-xs text-gray-500">
+                                    Joined: {new Date(referral.joinedAt).toLocaleDateString()}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    referral.isActive 
+                                      ? 'bg-green-100 text-green-700' 
+                                      : 'bg-yellow-100 text-yellow-700'
+                                  }`}>
+                                    {referral.isActive ? 'Active' : 'Pending'}
+                                  </span>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {referral.subscriptionStatus}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             
