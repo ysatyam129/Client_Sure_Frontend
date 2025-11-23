@@ -196,7 +196,7 @@ function DashboardContent() {
           </div>
 
           {/* Accessed Leads Section */}
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-lg p-6 border border-green-200">
+          <div className="bg-linear-to-br from-green-50 to-green-100 rounded-xl shadow-lg p-6 border border-green-200">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-green-600 p-3 rounded-lg">
                 <Users className="w-6 h-6 text-white" />
@@ -210,7 +210,7 @@ function DashboardContent() {
           </div>
 
           {/* External Tools Section */}
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-lg p-6 border border-purple-200">
+          <div className="bg-linear-to-br from-purple-50 to-purple-100 rounded-xl shadow-lg p-6 border border-purple-200">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-purple-600 p-3 rounded-lg">
                 <ExternalLink className="w-6 h-6 text-white" />
