@@ -246,7 +246,7 @@ function DashboardContent() {
               <h2 className="text-xl font-bold text-gray-900">Chatbot Tools</h2>
             </div>
             <p className="text-gray-700 mb-4">Access AI-powered chatbot tools to automate customer interactions and support.</p>
-            <button onClick={() => toast.info('Will be implemented soon')} className="bg-cyan-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-cyan-700 transition-colors w-full">
+            <button onClick={() => router.push('/user/dashboard/chatbot')} className="bg-cyan-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-cyan-700 transition-colors w-full">
               Launch Chatbot
             </button>
           </div>
