@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Lock, Unlock, Search, Download, Filter, Calendar, Linkedin, Instagram, Facebook, Globe, MapPin, Mail, X } from "lucide-react"
+import { Lock, Unlock, Search, Download, Filter, Calendar, Linkedin, Instagram, Facebook, Globe, MapPin, Mail } from "lucide-react"
 import { toast } from "sonner"
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
 import Axios from "@/utils/Axios"
+import EmailComposer, { EmailData } from "@/components/EmailComposer"
 
 interface Lead {
   id: string
@@ -50,14 +51,8 @@ function LeadsContent() {
   const [bulkSelectCount, setBulkSelectCount] = useState<number>(0)
   const [bulkProcessing, setBulkProcessing] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
-  const [emailSubject, setEmailSubject] = useState("")
-  const [emailMessage, setEmailMessage] = useState("")
-  const [emailType, setEmailType] = useState<'bulk' | 'category' | 'city' | 'country' | 'selected'>('bulk')
-  const [emailCategory, setEmailCategory] = useState("")
-  const [emailCity, setEmailCity] = useState("")
-  const [emailCountry, setEmailCountry] = useState("")
-  const [sendingEmail, setSendingEmail] = useState(false)
   const [selectedEmailLeads, setSelectedEmailLeads] = useState<string[]>([])
+  const [emailDefaultType, setEmailDefaultType] = useState<'bulk' | 'category' | 'city' | 'country' | 'selected'>('bulk')
   const [allCategories, setAllCategories] = useState<string[]>([])
   const [allCities, setAllCities] = useState<string[]>([])
   const [allCountries, setAllCountries] = useState<string[]>([])
@@ -231,52 +226,36 @@ function LeadsContent() {
     setBulkSelectCount(0)
   }
 
-  const handleSendEmail = async () => {
-    if (!emailSubject.trim() || !emailMessage.trim()) {
-      toast.error('Please fill in subject and message')
-      return
-    }
-
-    if (emailType === 'category' && !emailCategory) {
+  const handleSendEmail = async (data: EmailData) => {
+    if (data.type === 'category' && !data.category) {
       toast.error('Please select a category')
-      return
+      throw new Error('Category required')
     }
-    if (emailType === 'city' && !emailCity) {
+    if (data.type === 'city' && !data.city) {
       toast.error('Please select a city')
-      return
+      throw new Error('City required')
     }
-    if (emailType === 'country' && !emailCountry) {
+    if (data.type === 'country' && !data.country) {
       toast.error('Please select a country')
-      return
+      throw new Error('Country required')
     }
-    if (emailType === 'selected' && selectedEmailLeads.length === 0) {
+    if (data.type === 'selected' && (!data.leadIds || data.leadIds.length === 0)) {
       toast.error('Please select at least one lead')
-      return
+      throw new Error('Leads required')
     }
 
-    setSendingEmail(true)
-    try {
-      let payload: any = { subject: emailSubject, message: emailMessage, type: emailType }
-      
-      if (emailType === 'category') payload.category = emailCategory
-      if (emailType === 'city') payload.city = emailCity
-      if (emailType === 'country') payload.country = emailCountry
-      if (emailType === 'selected') payload.leadIds = selectedEmailLeads
+    const payload: any = { subject: data.subject, message: data.message, type: data.type }
+    
+    if (data.category) payload.category = data.category
+    if (data.city) payload.city = data.city
+    if (data.country) payload.country = data.country
+    if (data.leadIds) payload.leadIds = data.leadIds
+    if (data.cc) payload.cc = data.cc
+    if (data.bcc) payload.bcc = data.bcc
 
-      const response = await Axios.post('/leads/send-email', payload)
-      toast.success(response.data.message || 'Emails sent successfully')
-      setShowEmailModal(false)
-      setEmailSubject('')
-      setEmailMessage('')
-      setEmailCategory('')
-      setEmailCity('')
-      setEmailCountry('')
-      setSelectedEmailLeads([])
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to send emails')
-    } finally {
-      setSendingEmail(false)
-    }
+    const response = await Axios.post('/leads/send-email', payload)
+    toast.success(response.data.message || 'Emails sent successfully')
+    setSelectedEmailLeads([])
   }
 
   const handleSelectEmailLead = (id: string) => {
@@ -416,7 +395,7 @@ function LeadsContent() {
             {(activeTab === 'accessed' || filteredLeads.some(lead => lead.isAccessedByUser)) && (
               <>
                 <button
-                  onClick={() => setShowEmailModal(true)}
+                  onClick={() => { setEmailDefaultType('bulk'); setShowEmailModal(true); }}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2"
                 >
                   <Mail className="w-4 h-4" />
@@ -744,7 +723,7 @@ function LeadsContent() {
                                     <Download className="w-4 h-4" />
                                     <span>Export</span>
                                   </button>
-                                  <button onClick={() => { setSelectedEmailLeads([lead.id]); setEmailType('selected'); setShowEmailModal(true); }} className="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors">
+                                  <button onClick={() => { setSelectedEmailLeads([lead.id]); setEmailDefaultType('selected'); setShowEmailModal(true); }} className="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors">
                                     <Mail className="w-4 h-4" />
                                     <span>Email</span>
                                   </button>
@@ -834,115 +813,17 @@ function LeadsContent() {
           </>
         )}
 
-        {/* Email Modal */}
+        {/* Email Composer */}
         {showEmailModal && (
-          <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-black">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">Send Bulk Email</h2>
-                  <button onClick={() => setShowEmailModal(false)} className="text-gray-400 hover:text-gray-600">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email Type</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <label className="flex items-center">
-                        <input type="radio" value="bulk" checked={emailType === 'bulk'} onChange={(e) => setEmailType(e.target.value as any)} className="mr-2" />
-                        <span className="text-sm text-gray-700">All Accessed</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input type="radio" value="selected" checked={emailType === 'selected'} onChange={(e) => setEmailType(e.target.value as any)} className="mr-2" />
-                        <span className="text-sm text-gray-700">Selected ({selectedEmailLeads.length})</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input type="radio" value="category" checked={emailType === 'category'} onChange={(e) => setEmailType(e.target.value as any)} className="mr-2" />
-                        <span className="text-sm text-gray-700">By Category</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input type="radio" value="city" checked={emailType === 'city'} onChange={(e) => setEmailType(e.target.value as any)} className="mr-2" />
-                        <span className="text-sm text-gray-700">By City</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input type="radio" value="country" checked={emailType === 'country'} onChange={(e) => setEmailType(e.target.value as any)} className="mr-2" />
-                        <span className="text-sm text-gray-700">By Country</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {emailType === 'category' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Select Category</label>
-                      <select value={emailCategory} onChange={(e) => setEmailCategory(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900">
-                        <option value="">Choose a category</option>
-                        {categories.map(category => (<option key={category} value={category}>{category}</option>))}
-                      </select>
-                    </div>
-                  )}
-
-                  {emailType === 'city' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Select City</label>
-                      <select value={emailCity} onChange={(e) => setEmailCity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900">
-                        <option value="">Choose a city</option>
-                        {cities.map(city => (<option key={city} value={city}>{city}</option>))}
-                      </select>
-                    </div>
-                  )}
-
-                  {emailType === 'country' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Select Country</label>
-                      <select value={emailCountry} onChange={(e) => setEmailCountry(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900">
-                        <option value="">Choose a country</option>
-                        {countries.map(country => (<option key={country} value={country}>{country}</option>))}
-                      </select>
-                    </div>
-                  )}
-
-                  {emailType === 'selected' && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-sm text-blue-800">{selectedEmailLeads.length} lead(s) selected for email</p>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
-                    <input
-                      type="text"
-                      value={emailSubject}
-                      onChange={(e) => setEmailSubject(e.target.value)}
-                      placeholder="Enter email subject"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                    <textarea
-                      value={emailMessage}
-                      onChange={(e) => setEmailMessage(e.target.value)}
-                      placeholder="Enter email message"
-                      rows={8}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 justify-end pt-4">
-                    <button onClick={() => { setShowEmailModal(false); setSelectedEmailLeads([]); }} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                      Cancel
-                    </button>
-                    <button onClick={handleSendEmail} disabled={sendingEmail} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                      {sendingEmail ? (<><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>Sending...</>) : (<><Mail className="w-4 h-4" />Send Email</>)}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <EmailComposer
+            onClose={() => { setShowEmailModal(false); setSelectedEmailLeads([]); }}
+            onSend={handleSendEmail}
+            categories={categories}
+            cities={cities}
+            countries={countries}
+            selectedLeads={selectedEmailLeads}
+            defaultType={emailDefaultType}
+          />
         )}
     </div>
   )

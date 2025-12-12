@@ -185,5 +185,64 @@ export const AdminAPI = {
       console.error('Get user token status error:', error)
       return { success: false, error: 'API not available' }
     }
+  },
+
+  // Email Management
+  getEmails: async (params?: any) => {
+    try {
+      const queryString = params ? `?${new URLSearchParams(params).toString()}` : ''
+      const response = await fetch(`${API_BASE}/emails${queryString}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include'
+      })
+      return await handleResponse(response)
+    } catch (error) {
+      console.error('Get emails error:', error)
+      return { emailFeedbacks: [], pagination: {} }
+    }
+  },
+
+  getEmailById: async (id: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/emails/${id}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include'
+      })
+      return await handleResponse(response)
+    } catch (error) {
+      console.error('Get email by id error:', error)
+      return { error: 'API not available' }
+    }
+  },
+
+  getEmailStats: async () => {
+    try {
+      const response = await fetch(`${API_BASE}/emails/stats`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include'
+      })
+      return await handleResponse(response)
+    } catch (error) {
+      console.error('Get email stats error:', error)
+      return null
+    }
+  },
+
+  post: async (endpoint: string, data: any) => {
+    try {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify(data)
+      })
+      return await handleResponse(response)
+    } catch (error) {
+      console.error('Admin API POST error:', error)
+      return { error: 'API not available' }
+    }
   }
 }
