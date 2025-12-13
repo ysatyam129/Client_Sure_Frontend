@@ -109,32 +109,72 @@ export default function ResourceDetailPage() {
                   </div>
                 ) : resource.type === 'pdf' && resource.url ? (
                   <div className="relative">
-                    <div className="w-full h-[600px] bg-gray-50 flex items-center justify-center">
-                      <div className="text-center p-8">
-                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                          <FileText className="w-10 h-10 text-red-600" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3">PDF Document Ready</h3>
-                        <p className="text-gray-600 mb-6">Click below to open or download the PDF document.</p>
-                        <div className="space-y-3">
-                          <a 
-                            href={resource.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="block bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium"
-                          >
-                            Open PDF in New Tab
-                          </a>
-                          <a 
-                            href={resource.url} 
-                            download={resource.title}
-                            className="block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium"
-                          >
-                            Download PDF
-                          </a>
+                    {resource.thumbnailUrl ? (
+                      <div className="w-full bg-gray-50 p-6">
+                        <div className="max-w-md mx-auto">
+                          <img 
+                            src={resource.thumbnailUrl} 
+                            alt={`${resource.title} preview`}
+                            className="w-full rounded-lg shadow-sm mb-6"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling.style.display = 'block';
+                            }}
+                          />
+                          <div className="text-center" style={{display: 'none'}}>
+                            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                              <FileText className="w-10 h-10 text-red-600" />
+                            </div>
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-3">PDF Document Preview</h3>
+                          <p className="text-gray-600 mb-6">Click below to open or download the PDF document.</p>
+                          <div className="space-y-3">
+                            <a 
+                              href={resource.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="block bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium text-center"
+                            >
+                              Open PDF in New Tab
+                            </a>
+                            <a 
+                              href={resource.url} 
+                              download={resource.title}
+                              className="block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium text-center"
+                            >
+                              Download PDF
+                            </a>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="w-full h-[600px] bg-gray-50 flex items-center justify-center">
+                        <div className="text-center p-8">
+                          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <FileText className="w-10 h-10 text-red-600" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-3">PDF Document Ready</h3>
+                          <p className="text-gray-600 mb-6">Click below to open or download the PDF document.</p>
+                          <div className="space-y-3">
+                            <a 
+                              href={resource.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="block bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium"
+                            >
+                              Open PDF in New Tab
+                            </a>
+                            <a 
+                              href={resource.url} 
+                              download={resource.title}
+                              className="block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                            >
+                              Download PDF
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="absolute top-4 right-4">
                       <span className="px-3 py-1 rounded-md text-xs font-medium bg-red-50 text-red-700 border border-red-200">
                         PDF

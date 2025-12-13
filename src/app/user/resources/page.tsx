@@ -186,11 +186,39 @@ export default function ResourcesPage() {
                       </div>
                     </div>
                   ) : resource.type === 'pdf' ? (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <div className="text-center">
-                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                        <p className="text-xs text-gray-600 font-medium">PDF Document</p>
-                      </div>
+                    <div className="relative w-full h-full">
+                      {resource.thumbnailUrl ? (
+                        <>
+                          <img 
+                            src={resource.thumbnailUrl} 
+                            alt={`${resource.title} preview`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback to PDF icon if thumbnail fails to load
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                            <div className="bg-white/90 rounded-full p-2">
+                              <FileText className="w-5 h-5 text-red-600" />
+                            </div>
+                          </div>
+                          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center" style={{display: 'none'}}>
+                            <div className="text-center">
+                              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                              <p className="text-xs text-gray-600 font-medium">PDF Document</p>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                          <div className="text-center">
+                            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                            <p className="text-xs text-gray-600 font-medium">PDF Document</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

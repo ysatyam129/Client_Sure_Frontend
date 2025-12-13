@@ -11,6 +11,7 @@ interface PDFDocument {
   url: string
   createdAt: string
   isActive: boolean
+  thumbnailUrl?: string
 }
 
 export default function PDFDocumentsContent() {
@@ -229,7 +230,36 @@ export default function PDFDocumentsContent() {
               <div key={doc.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                 {/* PDF Preview */}
                 <div className="relative h-48 bg-gray-100">
-                  {doc.url ? (
+                  {doc.thumbnailUrl ? (
+                    <div className="relative w-full h-full">
+                      <img 
+                        src={doc.thumbnailUrl} 
+                        alt={`${doc.title} preview`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to PDF icon if thumbnail fails to load
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                        <div className="bg-white/90 rounded-full p-2">
+                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="absolute inset-0 bg-gray-50 flex items-center justify-center" style={{display: 'none'}}>
+                        <div className="text-center">
+                          <svg className="w-12 h-12 text-red-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <p className="text-sm text-gray-600 mb-2">PDF Document</p>
+                          <p className="text-xs text-gray-500">Click Preview to view</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : doc.url ? (
                     <div className="relative w-full h-full bg-gray-50 flex items-center justify-center">
                       <div className="text-center">
                         <svg className="w-12 h-12 text-red-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

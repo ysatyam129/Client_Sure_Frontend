@@ -19,33 +19,30 @@ export default function CourseVideosContent() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    file: null as File | null
+    url: "",
+    thumbnailUrl: ""
   })
   const [editingVideo, setEditingVideo] = useState<CourseVideo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [previewVideo, setPreviewVideo] = useState<CourseVideo | null>(null)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormData({ ...formData, file: e.target.files[0] })
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.file) return
+    if (!formData.url) return
 
     setIsLoading(true)
-    const submitData = new FormData()
-    submitData.append('title', formData.title)
-    submitData.append('description', formData.description)
-    submitData.append('type', 'video')
-    submitData.append('file', formData.file)
+    const submitData = {
+      title: formData.title,
+      description: formData.description,
+      type: 'video',
+      url: formData.url,
+      thumbnailUrl: formData.thumbnailUrl || formData.url
+    }
 
     try {
       const response = await Axios.post('/admin/resources', submitData)
       if (response.data) {
-        setFormData({ title: "", description: "", file: null })
+        setFormData({ title: "", description: "", url: "", thumbnailUrl: "" })
         setShowAddForm(false)
         loadVideos()
       }
@@ -84,30 +81,27 @@ export default function CourseVideosContent() {
     setFormData({
       title: video.title,
       description: video.description,
-      file: null
+      url: video.url,
+      thumbnailUrl: video.thumbnailUrl || ""
     })
     setShowAddForm(true)
   }
 
   const updateVideo = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!editingVideo) return
+    if (!editingVideo || !formData.url) return
 
     setIsLoading(true)
     try {
-      if (formData.file) {
-        const submitData = new FormData()
-        submitData.append('title', formData.title)
-        submitData.append('description', formData.description)
-        submitData.append('file', formData.file)
-        await Axios.put(`/admin/resources/${editingVideo.id}`, submitData)
-      } else {
-        await Axios.put(`/admin/resources/${editingVideo.id}`, {
-          title: formData.title,
-          description: formData.description
-        })
+      const updateData = {
+        title: formData.title,
+        description: formData.description,
+        type: 'video',
+        url: formData.url,
+        thumbnailUrl: formData.thumbnailUrl || formData.url
       }
-      setFormData({ title: "", description: "", file: null })
+      await Axios.put(`/admin/resources/${editingVideo.id}`, updateData)
+      setFormData({ title: "", description: "", url: "", thumbnailUrl: "" })
       setEditingVideo(null)
       setShowAddForm(false)
       loadVideos()
@@ -120,7 +114,7 @@ export default function CourseVideosContent() {
 
   const cancelEdit = () => {
     setEditingVideo(null)
-    setFormData({ title: "", description: "", file: null })
+    setFormData({ title: "", description: "", url: "", thumbnailUrl: "" })
     setShowAddForm(false)
   }
 
@@ -168,7 +162,7 @@ export default function CourseVideosContent() {
 
       {showAddForm && (
         <div className="bg-white rounded-lg border shadow-sm p-6 mb-8">
-          <h4 className="text-lg font-semibold text-gray-900 mb-4">{editingVideo ? 'Edit Course Video' : 'Upload Course Video'}</h4>
+          <h4 className="text-lg font-semibold text-gray-900 mb-4">{editingVideo ? 'Edit Course Video' : 'Add Course Video'}</h4>
           <form onSubmit={editingVideo ? updateVideo : handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-black mb-2">Title</label>
@@ -190,22 +184,33 @@ export default function CourseVideosContent() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-black mb-2">Video File</label>
+              <label className="block text-sm font-semibold text-black mb-2">Video URL</label>
               <input
-                type="file"
-                accept="video/*"
-                onChange={handleFileChange}
-                className="w-full px-4 py-2 border rounded-lg text-black"
-                required={!editingVideo}
+                type="url"
+                value={formData.url}
+                onChange={(e) => setFormData({...formData, url: e.target.value})}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-black"
+                placeholder="https://example.com/video.mp4"
+                required
               />
-              {editingVideo && <p className="text-sm text-gray-500 mt-1">Leave empty to keep current file</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-black mb-2">Thumbnail URL (Optional)</label>
+              <input
+                type="url"
+                value={formData.thumbnailUrl}
+                onChange={(e) => setFormData({...formData, thumbnailUrl: e.target.value})}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-black"
+                placeholder="https://example.com/thumbnail.jpg"
+              />
+              <p className="text-sm text-gray-500 mt-1">Leave empty to use video URL as thumbnail</p>
             </div>
             <button
               type="submit"
               disabled={isLoading}
               className="w-full bg-purple-600 text-white py-2.5 rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium"
             >
-              {isLoading ? (editingVideo ? 'Updating...' : 'Uploading...') : (editingVideo ? 'Update Video' : 'Upload Video')}
+              {isLoading ? (editingVideo ? 'Updating...' : 'Adding...') : (editingVideo ? 'Update Video' : 'Add Video')}
             </button>
           </form>
         </div>
@@ -225,7 +230,7 @@ export default function CourseVideosContent() {
             {videos.map((video, index) => (
               <div key={video.id || index} className="border rounded-lg overflow-hidden">
                 <div className="aspect-video bg-gray-200 relative">
-                  {video.url ? (
+                  {video.type === 'video' && video.url ? (
                     <video 
                       className="w-full h-full object-cover"
                       controls
@@ -234,10 +239,38 @@ export default function CourseVideosContent() {
                       <source src={video.url} type="video/mp4" />
                       Your browser does not support the video tag.
                     </video>
+                  ) : video.type === 'pdf' && video.thumbnailUrl ? (
+                    <div className="relative w-full h-full">
+                      <img 
+                        src={video.thumbnailUrl} 
+                        alt={`${video.title} preview`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to PDF icon if thumbnail fails to load
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                        <div className="bg-white/90 rounded-full p-2">
+                          <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="absolute inset-0 bg-gray-100 flex items-center justify-center" style={{display: 'none'}}>
+                        <div className="text-center">
+                          <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <p className="text-xs text-gray-600 font-medium">PDF Preview</p>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
                   )}
