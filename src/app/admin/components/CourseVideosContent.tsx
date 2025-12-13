@@ -8,6 +8,7 @@ interface CourseVideo {
   title: string
   description: string
   url: string
+  type: string
   createdAt: string
   isActive: boolean
   thumbnailUrl?: string
@@ -248,7 +249,9 @@ export default function CourseVideosContent() {
                         onError={(e) => {
                           // Fallback to PDF icon if thumbnail fails to load
                           e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling.style.display = 'flex';
+                          if (e.currentTarget.nextElementSibling) {
+                            (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                          }
                         }}
                       />
                       <div className="absolute inset-0 bg-black/10 flex items-center justify-center">

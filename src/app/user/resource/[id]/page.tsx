@@ -118,7 +118,9 @@ export default function ResourceDetailPage() {
                             className="w-full rounded-lg shadow-sm mb-6"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextElementSibling.style.display = 'block';
+                              if (e.currentTarget.nextElementSibling) {
+                                (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'block';
+                              }
                             }}
                           />
                           <div className="text-center" style={{display: 'none'}}>
