@@ -311,17 +311,17 @@ function LeadsContent() {
 
   const cities = useMemo(() => {
     if (activeTab === 'all') return allCities
-    return Array.from(new Set(accessedLeads.map(l => l.city).filter(Boolean))).sort()
+    return Array.from(new Set(accessedLeads.map(l => l.city).filter(Boolean))) as string[]
   }, [activeTab, allCities, accessedLeads])
 
   const countries = useMemo(() => {
     if (activeTab === 'all') return allCountries
-    return Array.from(new Set(accessedLeads.map(l => l.country).filter(Boolean))).sort()
+    return Array.from(new Set(accessedLeads.map(l => l.country).filter(Boolean))) as string[]
   }, [activeTab, allCountries, accessedLeads])
 
   const categories = useMemo(() => {
     if (activeTab === 'all') return allCategories
-    return Array.from(new Set(accessedLeads.map(l => l.category).filter(Boolean))).sort()
+    return Array.from(new Set(accessedLeads.map(l => l.category).filter(Boolean))) as string[]
   }, [activeTab, allCategories, accessedLeads])
 
   const filteredLeads = (activeTab === 'all' ? leads : accessedLeads).filter(lead => {

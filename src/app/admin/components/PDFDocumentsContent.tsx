@@ -5,6 +5,7 @@ import Axios from "@/utils/Axios"
 
 interface PDFDocument {
   id: string
+  _id?: string
   title: string
   description: string
   url: string
@@ -225,7 +226,7 @@ export default function PDFDocumentsContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
             {documents.map((doc, index) => (
-              <div key={doc.id || doc._id || index} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+              <div key={doc.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                 {/* PDF Preview */}
                 <div className="relative h-48 bg-gray-100">
                   {doc.url ? (

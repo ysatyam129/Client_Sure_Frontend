@@ -106,7 +106,7 @@ export default function EmailsContent() {
       let filteredEmails = data.emailFeedbacks || []
       
       if (userName) {
-        filteredEmails = filteredEmails.filter(email => 
+        filteredEmails = filteredEmails.filter((email: EmailFeedback) => 
           email.userId.name.toLowerCase().includes(userName.toLowerCase())
         )
       }
