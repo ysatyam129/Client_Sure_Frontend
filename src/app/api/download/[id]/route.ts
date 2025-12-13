@@ -3,13 +3,13 @@ import { headers } from 'next/headers'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
     
     // Get authorization header
-    const headersList = headers()
+    const headersList = await headers()
     const authorization = headersList.get('authorization')
     
     if (!authorization) {
