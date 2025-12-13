@@ -115,6 +115,10 @@ export default function Navbar() {
 
   const handleLogout = () => {
     setIsProfileOpen(false)
+    // Clear all stored tokens and user data
+    localStorage.removeItem('userToken')
+    localStorage.removeItem('adminToken')
+    localStorage.removeItem('user')
     toast.success('Logged out successfully!')
     router.push('/auth/login')
   }

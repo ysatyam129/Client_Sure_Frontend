@@ -65,4 +65,25 @@ Axios.interceptors.request.use(
   }
 );
 
+// Response interceptor for error handling
+Axios.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token is invalid or expired, clear localStorage and redirect to login
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('user');
+      
+      // Only redirect if we're not already on a login page
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/')) {
+        window.location.href = '/auth/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default Axios;

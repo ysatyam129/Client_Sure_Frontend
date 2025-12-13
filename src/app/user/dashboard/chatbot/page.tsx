@@ -128,34 +128,7 @@ export default function ChatbotPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
       <Navbar />
       
-      <div className="min-h-screen">
-        <header className="sticky top-0 z-[9999] bg-white/95 backdrop-blur-sm border-b border-blue-200 shadow-lg">
-          <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.back()}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 hover:bg-blue-200 border border-blue-300 transition-colors text-blue-700"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-
-              <button
-                className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 hover:bg-blue-200 border border-blue-300 transition-colors text-blue-700"
-                onClick={() => setSidebarOpen(s => !s)}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              </button>
-
-              <div className="font-bold text-xl text-blue-900">AI Content Generator</div>
-              <span className="hidden sm:inline text-blue-700 text-sm">Create professional content with AI</span>
-            </div>
-          </div>
-        </header>
-
+      <div className="min-h-screen pt-16">
         <div className="mx-auto max-w-7xl px-6 py-6 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
           <aside className="hidden lg:block">
             <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200 shadow-lg">
@@ -187,25 +160,6 @@ export default function ChatbotPage() {
           </AnimatePresence>
 
           <main className="min-h-[70vh]">
-            {!activeTool && (
-              <div className="rounded-xl bg-gradient-to-br from-white to-blue-50 border border-blue-200 shadow-lg p-12 text-center">
-                <div className="max-w-md mx-auto">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                  </div>
-                  <h1 className="text-3xl font-bold text-blue-900 mb-3">Welcome to AI Content Generator</h1>
-                  <p className="text-blue-700 text-lg">Select a tool from the sidebar to start creating professional content with AI assistance.</p>
-                  <div className="mt-6 flex justify-center">
-                    <div className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
-                      🚀 Powered by Advanced AI
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {activeTool === 'emails' && <EmailsScreen />}
             {activeTool === 'whatsapp' && <WhatsAppScreen />}
             {activeTool === 'linkedin' && <LinkedInScreen />}

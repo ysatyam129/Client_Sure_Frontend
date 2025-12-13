@@ -146,7 +146,7 @@ export default function StatisticsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <h4 className="font-semibold text-gray-900 mb-4">Monthly Overview</h4>
+                <h4 className="font-semibold text-gray-900 mb-4">Total Overview</h4>
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total Allocated</span>

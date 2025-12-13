@@ -161,9 +161,14 @@ function EmailsScreen() {
     const spamInstruction = spamFree ? 'Ensure the email uses non-spammy language: avoid ALL-CAPS, excessive punctuation, words like "Buy now", "Guarantee", or long lists; sound human and helpful.' : '';
     const wl = wordLimit && Number(wordLimit) > 0 ? `Keep it under ${wordLimit} words.` : '';
 
+    const languageInstruction = language !== 'English' 
+      ? `MANDATORY LANGUAGE REQUIREMENT: You MUST respond ONLY in ${language} language. Write the ENTIRE email (subject line, preview text, and body content) completely in ${language}. Do NOT use any English words or phrases. Use proper ${language} grammar, vocabulary, and sentence structure. If you need to use technical terms, translate them accurately to ${language}. This is a strict requirement - no exceptions allowed.`
+      : `Language: English.`;
+
     const base = [
+      languageInstruction,
       `You are a professional sales copywriter writing emails from the sender's perspective.`,
-      `Language: ${language}. ${readingInstruction()}`,
+      `Reading level: ${readingInstruction()}`,
       senderLines,
       keywordsLine,
       `Niche: ${niche}. Target audience: ${target}.`,
@@ -551,9 +556,14 @@ function WhatsAppScreen() {
     const spamInstruction = spamFree ? 'Avoid spammy phrasing; sound human and brief.' : '';
     const wl = wordLimit && Number(wordLimit) > 0 ? `Keep it under ${wordLimit} words.` : '';
 
+    const languageInstruction = language !== 'English' 
+      ? `MANDATORY LANGUAGE REQUIREMENT: You MUST respond ONLY in ${language} language. Write the ENTIRE WhatsApp message completely in ${language}. Do NOT use any English words or phrases. Use proper ${language} grammar, vocabulary, and sentence structure. This is a strict requirement - no exceptions allowed.`
+      : `Language: English.`;
+
     return [
+      languageInstruction,
       `You are a short, conversion-focused WhatsApp copywriter writing from the sender's perspective.`,
-      `Language: ${language}. ${readingInstruction()}`,
+      `Reading level: ${readingInstruction()}`,
       senderLines,
       keywordsLine,
       `Niche: ${niche}. Target: ${target}.`,
@@ -766,9 +776,14 @@ function LinkedInScreen() {
     const spamInstruction = spamFree ? 'Avoid spammy phrasing; keep it professional.' : '';
     const wl = wordLimit && Number(wordLimit) > 0 ? `Keep it under ${wordLimit} words.` : '';
 
+    const languageInstruction = language !== 'English' 
+      ? `MANDATORY LANGUAGE REQUIREMENT: You MUST respond ONLY in ${language} language. Write the ENTIRE LinkedIn message completely in ${language}. Do NOT use any English words or phrases. Use proper ${language} grammar, vocabulary, and sentence structure. This is a strict requirement - no exceptions allowed.`
+      : `Language: English.`;
+
     return [
+      languageInstruction,
       `You are a concise LinkedIn outreach copywriter writing from the sender's perspective.`,
-      `Language: ${language}. ${readingInstruction()}`,
+      `Reading level: ${readingInstruction()}`,
       senderLines,
       keywordsLine,
       `Niche: ${niche}. Target: ${target}.`,
@@ -978,9 +993,14 @@ function ContractsScreen() {
     const keywordsLine = `Keywords (use naturally): ${niche}.`;
     const wl = wordLimit && Number(wordLimit) > 0 ? `Aim for approximately ${wordLimit} words.` : '';
 
+    const languageInstruction = language !== 'English' 
+      ? `MANDATORY LANGUAGE REQUIREMENT: You MUST respond ONLY in ${language} language. Write the ENTIRE contract completely in ${language}. Do NOT use any English words or phrases. Use proper ${language} grammar, vocabulary, and legal expressions. This is a strict requirement - no exceptions allowed.`
+      : `Language: English.`;
+
     return [
+      languageInstruction,
       `You are a legal-savvy assistant drafting a short contract/statement-of-work. Write from the sender's perspective.`,
-      `Language: ${language}. ${readingInstruction()}`,
+      `Reading level: ${readingInstruction()}`,
       senderLines,
       keywordsLine,
       `Niche: ${niche}.`,

@@ -136,7 +136,7 @@ export default function SubscriptionPage() {
               {tokens && (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-gray-600 font-medium">Monthly Tokens</span>
+                    <span className="text-gray-600 font-medium">Total Tokens</span>
                     <span className="font-semibold text-blue-600">{tokens.monthlyTotal}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">

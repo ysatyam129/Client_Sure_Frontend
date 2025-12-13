@@ -169,11 +169,11 @@ export default function ReferralsPage() {
                   <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {referral.user.name.charAt(0).toUpperCase()}
+                        {referral.user?.name ? referral.user.name.charAt(0).toUpperCase() : '?'}
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">{referral.user.name}</div>
-                        <div className="text-sm text-gray-600">{referral.user.email}</div>
+                        <div className="font-medium text-gray-900">{referral.user?.name || 'Unknown User'}</div>
+                        <div className="text-sm text-gray-600">{referral.user?.email || 'No email'}</div>
                         <div className="text-xs text-gray-500">
                           Joined: {new Date(referral.joinedAt).toLocaleDateString()}
                         </div>

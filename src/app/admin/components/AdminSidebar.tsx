@@ -34,6 +34,10 @@ export default function AdminSidebar() {
   ]
 
   const handleLogout = () => {
+    // Clear all stored tokens and user data
+    localStorage.removeItem('userToken')
+    localStorage.removeItem('adminToken')
+    localStorage.removeItem('user')
     router.push('/auth/admin')
   }
 
