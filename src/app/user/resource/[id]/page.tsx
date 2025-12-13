@@ -6,7 +6,9 @@ import { FileText, Play, Lock, ArrowLeft, ExternalLink, Download } from "lucide-
 import { toast } from "sonner"
 import Navbar from "../../components/Navbar"
 import Footer from "../../components/Footer"
+import VideoViewer from "@/components/VideoViewer"
 import Axios from "@/utils/Axios"
+import BasicPDFViewer from "@/components/BasicPDFViewer"
 
 interface ResourceDetail {
   id: string
@@ -24,6 +26,8 @@ export default function ResourceDetailPage() {
   const router = useRouter()
   const [resource, setResource] = useState<ResourceDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showPreview, setShowPreview] = useState(false)
+  const [accessLoading, setAccessLoading] = useState(false)
 
   useEffect(() => {
     loadResource()
@@ -43,19 +47,67 @@ export default function ResourceDetailPage() {
   }
 
   const handleAccess = async () => {
+    setAccessLoading(true)
     try {
       await Axios.post(`/auth/access/${params.id}`)
       toast.success('Access granted successfully!')
-      loadResource()
+      setShowPreview(true)
+      setTimeout(() => {
+        loadResource()
+      }, 1000)
     } catch (error: any) {
       console.error(error)
       toast.error(error.response?.data?.error || 'Failed to grant access')
+    } finally {
+      setAccessLoading(false)
     }
   }
 
+  // Helper functions for video URL processing
+  const getEmbedUrl = (url: string) => {
+    if (!url) return ""
+    
+    // YouTube URL conversion
+    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
+    const youtubeMatch = url.match(youtubeRegex)
+    if (youtubeMatch) {
+      return `https://www.youtube.com/embed/${youtubeMatch[1]}?autoplay=1&rel=0&showinfo=0&controls=1&modestbranding=1&iv_load_policy=3&cc_load_policy=0&fs=1&disablekb=0&end_screen=0`
+    }
+    
+    // Vimeo URL conversion
+    const vimeoRegex = /(?:vimeo\.com\/)([0-9]+)/
+    const vimeoMatch = url.match(vimeoRegex)
+    if (vimeoMatch) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&title=0&byline=0&portrait=0&color=ffffff&suggested=0&related=0`
+    }
+    
+    return url
+  }
+
+  const isEmbeddableUrl = (url: string) => {
+    return url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com')
+  }
+
   const openResource = () => {
-    if (resource?.url) {
-      window.open(resource.url, '_blank')
+    router.push(`/user/resource/${params.id}/fullscreen`)
+  }
+
+  const handleDownload = async () => {
+    if (!resource?.url) return
+    
+    try {
+      const response = await fetch(resource.url)
+      const blob = await response.blob()
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `${resource.title}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(link.href)
+      toast.success('PDF downloaded successfully!')
+    } catch (error: any) {
+      toast.error('Download failed')
     }
   }
 
@@ -92,92 +144,47 @@ export default function ResourceDetailPage() {
           {/* Main Content - Left Side */}
           <div className="lg:col-span-2 space-y-6">
             {/* Preview Card */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              {resource.isAccessedByUser ? (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              {resource.isAccessedByUser || showPreview ? (
                 // Show actual content when accessed
                 resource.type === 'video' && resource.url ? (
-                  <div className="relative">
-                    <video className="w-full" controls controlsList="nodownload">
-                      <source src={resource.url} type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
+                  <div className="relative bg-black">
+                    {showPreview && !resource.isAccessedByUser ? (
+                      <div className="aspect-video bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                        <div className="text-center text-white">
+                          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+                          <p className="text-lg font-semibold">Unlocking Premium Content...</p>
+                          <p className="text-sm opacity-80">Please wait while we prepare your video</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="aspect-video">
+                        <VideoViewer 
+                          url={resource.url} 
+                          title={resource.title}
+                          showControls={true}
+                          autoPlay={true}
+                          className="h-full border-0 rounded-none shadow-none"
+                        />
+                      </div>
+                    )}
                     <div className="absolute top-4 right-4">
-                      <span className="px-3 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                        VIDEO
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-black/50 text-white backdrop-blur-sm">
+                        {resource.isAccessedByUser ? 'PREMIUM VIDEO' : 'UNLOCKING...'}
                       </span>
                     </div>
                   </div>
                 ) : resource.type === 'pdf' && resource.url ? (
                   <div className="relative">
-                    {resource.thumbnailUrl ? (
-                      <div className="w-full bg-gray-50 p-6">
-                        <div className="max-w-md mx-auto">
-                          <img 
-                            src={resource.thumbnailUrl} 
-                            alt={`${resource.title} preview`}
-                            className="w-full rounded-lg shadow-sm mb-6"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              if (e.currentTarget.nextElementSibling) {
-                                (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'block';
-                              }
-                            }}
-                          />
-                          <div className="text-center" style={{display: 'none'}}>
-                            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                              <FileText className="w-10 h-10 text-red-600" />
-                            </div>
-                          </div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-3">PDF Document Preview</h3>
-                          <p className="text-gray-600 mb-6">Click below to open or download the PDF document.</p>
-                          <div className="space-y-3">
-                            <a 
-                              href={resource.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="block bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium text-center"
-                            >
-                              Open PDF in New Tab
-                            </a>
-                            <a 
-                              href={resource.url} 
-                              download={resource.title}
-                              className="block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium text-center"
-                            >
-                              Download PDF
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-full h-[600px] bg-gray-50 flex items-center justify-center">
-                        <div className="text-center p-8">
-                          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <FileText className="w-10 h-10 text-red-600" />
-                          </div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-3">PDF Document Ready</h3>
-                          <p className="text-gray-600 mb-6">Click below to open or download the PDF document.</p>
-                          <div className="space-y-3">
-                            <a 
-                              href={resource.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="block bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium"
-                            >
-                              Open PDF in New Tab
-                            </a>
-                            <a 
-                              href={resource.url} 
-                              download={resource.title}
-                              className="block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium"
-                            >
-                              Download PDF
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div className="absolute top-4 right-4">
+                    <BasicPDFViewer 
+                      url={resource.url}
+                      title={resource.title}
+                      resourceId={resource.id}
+                      showDownload={true}
+                      showExternal={true}
+                      className="min-h-[600px]"
+                    />
+                    <div className="absolute top-4 right-4 z-10">
                       <span className="px-3 py-1 rounded-md text-xs font-medium bg-red-50 text-red-700 border border-red-200">
                         PDF
                       </span>
@@ -193,38 +200,46 @@ export default function ResourceDetailPage() {
                 )
               ) : (
                 // Show locked preview when not accessed
-                <div className="relative h-80 bg-gray-100">
+                <div className="relative aspect-video bg-gradient-to-br from-gray-900 via-gray-800 to-black">
                   {resource.type === 'video' ? (
                     <div className="w-full h-full flex items-center justify-center">
-                      <div className="text-center">
-                        <Play className="w-16 h-16 text-gray-400 mx-auto mb-3" />
-                        <p className="text-gray-600 text-sm font-medium">Video Content</p>
+                      <div className="text-center text-white">
+                        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
+                          <Play className="w-12 h-12 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">Premium Video Content</h3>
+                        <p className="text-gray-300 mb-4">Exclusive high-quality video tutorial</p>
+                        <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+                          <Lock className="w-4 h-4" />
+                          <span>Unlock to watch</span>
+                        </div>
                       </div>
                     </div>
                   ) : resource.type === 'pdf' ? (
                     <div className="w-full h-full flex items-center justify-center">
-                      <div className="text-center">
-                        <FileText className="w-16 h-16 text-gray-400 mx-auto mb-3" />
-                        <p className="text-gray-600 text-sm font-medium">PDF Document</p>
+                      <div className="text-center text-white">
+                        <div className="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                          <FileText className="w-12 h-12 text-red-400" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">Premium PDF Document</h3>
+                        <p className="text-gray-300 mb-4">Exclusive downloadable content</p>
+                        <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+                          <Lock className="w-4 h-4" />
+                          <span>Unlock to access</span>
+                        </div>
                       </div>
                     </div>
                   ) : null}
 
-                  <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex items-center justify-center">
-                    <div className="text-center">
-                      <Lock className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                      <p className="text-lg font-semibold text-gray-900 mb-1">Premium Content</p>
-                      <p className="text-sm text-gray-600">Get access to view this resource</p>
-                    </div>
-                  </div>
-
                   <div className="absolute top-4 right-4">
-                    <span className={`px-3 py-1 rounded-md text-xs font-medium ${
-                      resource.type === 'pdf' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
+                      resource.type === 'pdf' ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                     }`}>
-                      {resource.type.toUpperCase()}
+                      {resource.type.toUpperCase()} • PREMIUM
                     </span>
                   </div>
+                  
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none"></div>
                 </div>
               )}
             </div>
@@ -275,21 +290,34 @@ export default function ResourceDetailPage() {
                   <>
                     {resource.url && (
                       <button onClick={openResource} className="w-full bg-gray-900 text-white py-2.5 px-4 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
-                        <ExternalLink className="w-4 h-4" />
-                        Open Resource
+                        <Play className="w-4 h-4" />
+                        Open Fullscreen
                       </button>
                     )}
                     {resource.type === 'pdf' && resource.url && (
-                      <a href={resource.url} download className="w-full bg-white text-gray-900 py-2.5 px-4 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 border border-gray-300">
+                      <button onClick={handleDownload} className="w-full bg-white text-gray-900 py-2.5 px-4 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 border border-gray-300">
                         <Download className="w-4 h-4" />
                         Download PDF
-                      </a>
+                      </button>
                     )}
                   </>
                 ) : (
-                  <button onClick={handleAccess} className="w-full bg-gray-900 text-white py-2.5 px-4 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    Get Access
+                  <button 
+                    onClick={handleAccess} 
+                    disabled={accessLoading}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg text-sm font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                  >
+                    {accessLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Unlocking...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        Unlock Premium Content
+                      </>
+                    )}
                   </button>
                 )}
               </div>

@@ -1,6 +1,6 @@
 // Admin API utility functions
-const API_BASE =  "https://client-sure-backend.vercel.app/api/admin";
-// const API_BASE =  "http://localhost:5000/api/admin";
+// const API_BASE =  "https://client-sure-backend.vercel.app/api/admin";
+const API_BASE =  "http://localhost:5000/api/admin";
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('adminToken')
@@ -184,6 +184,63 @@ export const AdminAPI = {
     } catch (error) {
       console.error('Get user token status error:', error)
       return { success: false, error: 'API not available' }
+    }
+  },
+
+  // Admin Profile Management
+  adminSignup: async (data: any) => {
+    try {
+      const response = await fetch(`${API_BASE}/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      return await handleResponse(response)
+    } catch (error) {
+      console.error('Admin signup error:', error)
+      return { error: 'Admin signup failed' }
+    }
+  },
+
+  getAdminProfile: async () => {
+    try {
+      const response = await fetch(`${API_BASE}/profile`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include'
+      })
+      return await handleResponse(response)
+    } catch (error) {
+      console.error('Get admin profile error:', error)
+      return { error: 'Failed to get profile' }
+    }
+  },
+
+  updateAdminProfile: async (data: any) => {
+    try {
+      const response = await fetch(`${API_BASE}/profile`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data)
+      })
+      return await handleResponse(response)
+    } catch (error) {
+      console.error('Update admin profile error:', error)
+      return { error: 'Failed to update profile' }
+    }
+  },
+
+  changeAdminPassword: async (data: any) => {
+    try {
+      const response = await fetch(`${API_BASE}/change-password`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data)
+      })
+      return await handleResponse(response)
+    } catch (error) {
+      console.error('Change admin password error:', error)
+      return { error: 'Failed to change password' }
     }
   },
 

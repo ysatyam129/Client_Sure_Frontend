@@ -119,9 +119,6 @@ export default function AdminLeaderboardPage() {
       }
       
       setLastUpdated(new Date())
-      if (!silent) {
-        toast.success('Leaderboard updated successfully')
-      }
       
     } catch (error) {
       console.error('Error fetching leaderboard:', error)
@@ -632,8 +629,8 @@ export default function AdminLeaderboardPage() {
                                 const response = await AdminAPI.awardPrizeTokens(user._id, tokenAmount, prizeType)
                                 
                                 if (response.success) {
-                                  toast.success(`🎉 ${tokenAmount} ${prizeType} tokens awarded to ${user.name}!`)
-                                  toast.info('Tokens will expire in 24 hours')
+                                  toast.success(`🎉 ${tokenAmount} ${prizeType} tokens awarded to ${user.name}! (Expires in 24 hours)`)
+                                  fetchLeaderboard(true)
                                 } else {
                                   toast.error(response.error || 'Failed to award tokens')
                                 }
@@ -781,8 +778,8 @@ export default function AdminLeaderboardPage() {
                                       const response = await AdminAPI.awardPrizeTokens(user._id, tokenAmount, prizeType)
                                       
                                       if (response.success) {
-                                        toast.success(`🎉 ${tokenAmount} ${prizeType} tokens awarded to ${user.name}!`)
-                                        toast.info('Tokens will expire in 24 hours')
+                                        toast.success(`🎉 ${tokenAmount} ${prizeType} tokens awarded to ${user.name}! (Expires in 24 hours)`)
+                                        fetchLeaderboard(true)
                                       } else {
                                         toast.error(response.error || 'Failed to award tokens')
                                       }

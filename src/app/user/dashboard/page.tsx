@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
+import VideoViewer from "@/components/VideoViewer"
 import Axios from "@/utils/Axios"
 
 export const dynamic = 'force-dynamic'
@@ -397,16 +398,43 @@ function DashboardContent() {
                   {resources.filter(r => r.type === 'pdf').map((resource) => (
                     <div key={resource.id} onClick={() => handleNavigation(`/user/resource/${resource.id}`)} className="group bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer">
                       <div className="relative h-48 bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="bg-white rounded-2xl p-5 shadow-md mx-auto w-fit">
-                            <FileText className="w-16 h-16 text-red-500" />
+                        {resource.isAccessedByUser && resource.thumbnailUrl ? (
+                          // Show PDF thumbnail preview for accessed resources
+                          <div className="w-full h-full p-4">
+                            <img 
+                              src={resource.thumbnailUrl} 
+                              alt={`${resource.title} preview`}
+                              className="w-full h-full object-contain rounded-lg shadow-sm"
+                              onError={(e) => {
+                                // Fallback to PDF icon if thumbnail fails
+                                e.currentTarget.style.display = 'none';
+                                if (e.currentTarget.nextElementSibling) {
+                                  (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                                }
+                              }}
+                            />
+                            <div className="w-full h-full items-center justify-center" style={{display: 'none'}}>
+                              <div className="bg-white rounded-2xl p-5 shadow-md mx-auto w-fit">
+                                <FileText className="w-16 h-16 text-red-500" />
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          // Show PDF icon for locked or no-thumbnail resources
+                          <div className="text-center">
+                            <div className="bg-white rounded-2xl p-5 shadow-md mx-auto w-fit">
+                              <FileText className="w-16 h-16 text-red-500" />
+                            </div>
+                            {resource.isAccessedByUser && (
+                              <p className="text-red-600 text-sm font-medium mt-2">PDF Ready</p>
+                            )}
+                          </div>
+                        )}
                         {!resource.isAccessedByUser && (
-                          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
                             <div className="text-center text-white">
                               <Lock className="w-8 h-8 mx-auto mb-2" />
-                              <p className="text-sm font-semibold">Locked</p>
+                              <p className="text-sm font-semibold">Unlock to Access</p>
                             </div>
                           </div>
                         )}
@@ -451,17 +479,34 @@ function DashboardContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {resources.filter(r => r.type === 'video').map((resource) => (
                     <div key={resource.id} onClick={() => handleNavigation(`/user/resource/${resource.id}`)} className="group bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer">
-                      <div className="relative h-48 bg-gradient-to-br from-blue-100 to-purple-100">
-                        {resource.url && (
-                          <video className="w-full h-full object-cover" preload="metadata" onContextMenu={(e) => e.preventDefault()} style={{ pointerEvents: 'none' }}>
-                            <source src={resource.url} type="video/mp4" />
-                          </video>
+                      <div className="relative h-48 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
+                        {resource.isAccessedByUser && resource.url ? (
+                          // Show video preview for accessed resources
+                          <div className="w-full h-full">
+                            <VideoViewer 
+                              url={resource.url} 
+                              title={resource.title}
+                              showControls={false}
+                              autoPlay={false}
+                              className="h-full border-0 rounded-none shadow-none"
+                            />
+                          </div>
+                        ) : (
+                          // Show placeholder for locked resources
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                            <div className="text-center">
+                              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <Play className="w-8 h-8 text-blue-600" />
+                              </div>
+                              <p className="text-gray-600 text-sm font-medium">Premium Video</p>
+                            </div>
+                          </div>
                         )}
                         {!resource.isAccessedByUser && (
-                          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
                             <div className="text-center text-white">
                               <Lock className="w-8 h-8 mx-auto mb-2" />
-                              <p className="text-sm font-semibold">Locked</p>
+                              <p className="text-sm font-semibold">Unlock to Watch</p>
                             </div>
                           </div>
                         )}

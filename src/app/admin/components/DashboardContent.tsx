@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import Axios from "@/utils/Axios"
+import { checkAdminAuth, handleAdminAuthError } from "@/utils/adminAuth"
 
 interface AnalyticsData {
   users: {
@@ -43,10 +44,13 @@ export default function DashboardContent() {
 
   const loadAnalytics = async () => {
     try {
+      if (!checkAdminAuth()) return
+
       const response = await Axios.get('/admin/analytics')
       setAnalytics(response.data)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading analytics:', error)
+      handleAdminAuthError(error)
     } finally {
       setLoading(false)
     }

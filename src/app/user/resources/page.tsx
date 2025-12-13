@@ -168,56 +168,85 @@ export default function ResourcesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredResources.map((resource) => (
-              <div key={resource.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+              <div key={resource.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl hover:border-gray-300 transition-all duration-300 transform hover:-translate-y-1">
                 {/* Preview Section */}
-                <div className="relative h-48 bg-gray-100">
+                <div className="relative h-48 bg-gray-100 group cursor-pointer" onClick={() => openResource(resource.id)}>
                   {resource.type === 'video' && resource.url ? (
-                    <div className="relative w-full h-full">
-                      <video 
-                        className="w-full h-full object-cover"
-                        preload="metadata"
-                      >
-                        <source src={resource.url} type="video/mp4" />
-                      </video>
-                      <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-                        <div className="bg-white/90 rounded-full p-2">
-                          <Play className="w-5 h-5 text-gray-900" />
+                    <div className="relative w-full h-full overflow-hidden">
+                      {resource.url.includes('youtube.com') || resource.url.includes('youtu.be') ? (
+                        <div className="w-full h-full bg-black">
+                          <iframe
+                            src={resource.url.includes('youtube.com') 
+                              ? resource.url.replace('watch?v=', 'embed/').split('&')[0] + '?controls=0&showinfo=0&rel=0&modestbranding=1'
+                              : resource.url.replace('youtu.be/', 'youtube.com/embed/').split('?')[0] + '?controls=0&showinfo=0&rel=0&modestbranding=1'
+                            }
+                            className="w-full h-full object-cover"
+                            frameBorder="0"
+                            style={{ pointerEvents: 'none' }}
+                          />
+                        </div>
+                      ) : resource.url.includes('vimeo.com') ? (
+                        <div className="w-full h-full bg-black">
+                          <iframe
+                            src={resource.url.replace('vimeo.com/', 'player.vimeo.com/video/').split('?')[0] + '?controls=0&title=0&byline=0&portrait=0'}
+                            className="w-full h-full object-cover"
+                            frameBorder="0"
+                            style={{ pointerEvents: 'none' }}
+                          />
+                        </div>
+                      ) : (
+                        <video 
+                          className="w-full h-full object-cover"
+                          preload="metadata"
+                          style={{ pointerEvents: 'none' }}
+                        >
+                          <source src={resource.url} type="video/mp4" />
+                          <source src={resource.url} type="video/webm" />
+                          <source src={resource.url} type="video/ogg" />
+                        </video>
+                      )}
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
+                        <div className="bg-white/90 group-hover:bg-white group-hover:scale-110 rounded-full p-3 transition-all duration-300 shadow-lg">
+                          <Play className="w-6 h-6 text-gray-900" />
                         </div>
                       </div>
                     </div>
                   ) : resource.type === 'pdf' ? (
-                    <div className="relative w-full h-full">
+                    <div className="relative w-full h-full group cursor-pointer" onClick={() => openResource(resource.id)}>
                       {resource.thumbnailUrl ? (
                         <>
                           <img 
                             src={resource.thumbnailUrl} 
                             alt={`${resource.title} preview`}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => {
-                              // Fallback to PDF icon if thumbnail fails to load
                               e.currentTarget.style.display = 'none';
                               if (e.currentTarget.nextElementSibling) {
                                 (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
                               }
                             }}
                           />
-                          <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-                            <div className="bg-white/90 rounded-full p-2">
-                              <FileText className="w-5 h-5 text-red-600" />
+                          <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                            <div className="bg-white/90 group-hover:bg-white group-hover:scale-110 rounded-full p-3 transition-all duration-300 shadow-lg">
+                              <FileText className="w-6 h-6 text-red-600" />
                             </div>
                           </div>
-                          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center" style={{display: 'none'}}>
+                          <div className="absolute inset-0 bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center" style={{display: 'none'}}>
                             <div className="text-center">
-                              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                              <p className="text-xs text-gray-600 font-medium">PDF Document</p>
+                              <div className="bg-white rounded-2xl p-4 shadow-md">
+                                <FileText className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                                <p className="text-xs text-gray-600 font-medium">PDF Document</p>
+                              </div>
                             </div>
                           </div>
                         </>
                       ) : (
-                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <div className="w-full h-full bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center group-hover:from-red-100 group-hover:to-orange-100 transition-all duration-300">
                           <div className="text-center">
-                            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                            <p className="text-xs text-gray-600 font-medium">PDF Document</p>
+                            <div className="bg-white rounded-2xl p-4 shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300">
+                              <FileText className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                              <p className="text-xs text-gray-600 font-medium">PDF Document</p>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -235,10 +264,10 @@ export default function ResourcesPage() {
                   
                   {/* Type Badge */}
                   <div className="absolute top-3 right-3">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm shadow-lg ${
                       resource.type === 'pdf' 
-                        ? 'bg-red-50 text-red-700 border border-red-200' 
-                        : 'bg-blue-50 text-blue-700 border border-blue-200'
+                        ? 'bg-red-500/90 text-white' 
+                        : 'bg-blue-500/90 text-white'
                     }`}>
                       {resource.type.toUpperCase()}
                     </span>
@@ -257,10 +286,10 @@ export default function ResourcesPage() {
                   
                   <button
                     onClick={() => openResource(resource.id)}
-                    className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-to-r from-gray-900 to-gray-800 hover:from-gray-800 hover:to-gray-700 text-white py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    View Details
+                    {resource.type === 'video' ? 'Watch Video' : 'View PDF'}
                   </button>
                 </div>
               </div>

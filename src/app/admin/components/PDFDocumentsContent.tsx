@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Axios from "@/utils/Axios"
+import BasicPDFViewer from "@/components/BasicPDFViewer"
 
 interface PDFDocument {
   id: string
@@ -355,64 +356,13 @@ export default function PDFDocumentsContent() {
 
             {/* PDF Viewer */}
             <div className="flex-1 relative">
-              {!pdfError ? (
-                <div className="w-full h-full">
-                  <iframe
-                    src={previewDoc.url}
-                    className="w-full h-full border-0"
-                    title={previewDoc.title}
-                    onError={() => {
-                      console.log('Direct PDF failed, trying Google Docs viewer');
-                      const iframe = document.querySelector('iframe');
-                      if (iframe) {
-                        iframe.src = `https://docs.google.com/viewer?url=${encodeURIComponent(previewDoc.url)}&embedded=true`;
-                      }
-                    }}
-                    onLoad={(e) => {
-                      // Check if iframe loaded successfully
-                      setTimeout(() => {
-                        try {
-                          const iframe = e.target as HTMLIFrameElement;
-                          if (!iframe.contentDocument && !iframe.contentWindow) {
-                            setPdfError(true);
-                          }
-                        } catch (error) {
-                          console.log('PDF preview loaded successfully');
-                        }
-                      }, 2000);
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                  <div className="text-center p-8 max-w-md">
-                    <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-3">PDF Ready for Download</h4>
-                    <p className="text-gray-600 mb-6">Click below to open or download the PDF document.</p>
-                    <div className="space-y-3">
-                      <a 
-                        href={previewDoc.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="block w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                      >
-                        Open PDF in New Tab
-                      </a>
-                      <a 
-                        href={previewDoc.url} 
-                        download={previewDoc.title}
-                        className="block w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
-                      >
-                        Download PDF
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <BasicPDFViewer 
+                url={previewDoc.url}
+                title={previewDoc.title}
+                showDownload={false}
+                showExternal={true}
+                className="h-full"
+              />
             </div>
 
             {/* Footer */}
@@ -431,14 +381,7 @@ export default function PDFDocumentsContent() {
                     rel="noopener noreferrer"
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                   >
-                    Open PDF
-                  </a>
-                  <a 
-                    href={previewDoc.url} 
-                    download={previewDoc.title}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                  >
-                    Download
+                    Open External
                   </a>
                 </div>
               </div>

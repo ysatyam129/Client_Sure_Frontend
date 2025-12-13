@@ -26,6 +26,7 @@ export default function CourseVideosContent() {
   const [editingVideo, setEditingVideo] = useState<CourseVideo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [previewVideo, setPreviewVideo] = useState<CourseVideo | null>(null)
+  const [videoPreview, setVideoPreview] = useState<string>("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -116,7 +117,41 @@ export default function CourseVideosContent() {
   const cancelEdit = () => {
     setEditingVideo(null)
     setFormData({ title: "", description: "", url: "", thumbnailUrl: "" })
+    setVideoPreview("")
     setShowAddForm(false)
+  }
+
+  // Function to get embeddable video URL
+  const getEmbedUrl = (url: string) => {
+    if (!url) return ""
+    
+    // YouTube URL conversion
+    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
+    const youtubeMatch = url.match(youtubeRegex)
+    if (youtubeMatch) {
+      return `https://www.youtube.com/embed/${youtubeMatch[1]}`
+    }
+    
+    // Vimeo URL conversion
+    const vimeoRegex = /(?:vimeo\.com\/)([0-9]+)/
+    const vimeoMatch = url.match(vimeoRegex)
+    if (vimeoMatch) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}`
+    }
+    
+    // Return original URL for direct video files
+    return url
+  }
+
+  // Function to check if URL is embeddable (YouTube/Vimeo)
+  const isEmbeddableUrl = (url: string) => {
+    return url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com')
+  }
+
+  // Function to handle URL change and update preview
+  const handleUrlChange = (url: string) => {
+    setFormData({...formData, url})
+    setVideoPreview(url)
   }
 
   const deleteVideo = async (id: string) => {
@@ -189,12 +224,44 @@ export default function CourseVideosContent() {
               <input
                 type="url"
                 value={formData.url}
-                onChange={(e) => setFormData({...formData, url: e.target.value})}
+                onChange={(e) => handleUrlChange(e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-black"
-                placeholder="https://example.com/video.mp4"
+                placeholder="YouTube, Vimeo, or direct video URL"
                 required
               />
+              <p className="text-sm text-gray-500 mt-1">Supports YouTube, Vimeo, and direct video links</p>
             </div>
+            
+            {/* Video Preview */}
+            {videoPreview && (
+              <div>
+                <label className="block text-sm font-semibold text-black mb-2">Preview</label>
+                <div className="border rounded-lg overflow-hidden bg-gray-100">
+                  <div className="aspect-video">
+                    {isEmbeddableUrl(videoPreview) ? (
+                      <iframe
+                        src={getEmbedUrl(videoPreview)}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video 
+                        className="w-full h-full object-cover"
+                        controls
+                        preload="metadata"
+                      >
+                        <source src={videoPreview} type="video/mp4" />
+                        <source src={videoPreview} type="video/webm" />
+                        <source src={videoPreview} type="video/ogg" />
+                        Your browser does not support the video tag.
+                      </video>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold text-black mb-2">Thumbnail URL (Optional)</label>
               <input
@@ -232,14 +299,26 @@ export default function CourseVideosContent() {
               <div key={video.id || index} className="border rounded-lg overflow-hidden">
                 <div className="aspect-video bg-gray-200 relative">
                   {video.type === 'video' && video.url ? (
-                    <video 
-                      className="w-full h-full object-cover"
-                      controls
-                      preload="metadata"
-                    >
-                      <source src={video.url} type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
+                    isEmbeddableUrl(video.url) ? (
+                      <iframe
+                        src={getEmbedUrl(video.url)}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video 
+                        className="w-full h-full object-cover"
+                        controls
+                        preload="metadata"
+                      >
+                        <source src={video.url} type="video/mp4" />
+                        <source src={video.url} type="video/webm" />
+                        <source src={video.url} type="video/ogg" />
+                        Your browser does not support the video tag.
+                      </video>
+                    )
                   ) : video.type === 'pdf' && video.thumbnailUrl ? (
                     <div className="relative w-full h-full">
                       <img 
@@ -332,14 +411,26 @@ export default function CourseVideosContent() {
               </button>
             </div>
             <div className="flex-1 p-4 flex items-center justify-center">
-              <video 
-                className="max-w-full max-h-full rounded"
-                controls
-                autoPlay
-              >
-                <source src={previewVideo.url} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+              {isEmbeddableUrl(previewVideo.url) ? (
+                <iframe
+                  src={getEmbedUrl(previewVideo.url)}
+                  className="w-full h-full rounded"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video 
+                  className="max-w-full max-h-full rounded"
+                  controls
+                  autoPlay
+                >
+                  <source src={previewVideo.url} type="video/mp4" />
+                  <source src={previewVideo.url} type="video/webm" />
+                  <source src={previewVideo.url} type="video/ogg" />
+                  Your browser does not support the video tag.
+                </video>
+              )}
             </div>
             <div className="p-4 border-t bg-gray-50">
               <p className="text-sm text-gray-600">{previewVideo.description}</p>
