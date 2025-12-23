@@ -41,7 +41,23 @@ const baseURL =  "https://client-sure-backend.vercel.app/api";
 const Axios = axios.create({
   baseURL: baseURL,
   withCredentials: false,
+  timeout: 10000,
 });
+
+// Add connection test
+const testConnection = async () => {
+  try {
+    await Axios.get('/health');
+    console.log('✅ Backend connection successful');
+  } catch (error) {
+    console.warn('⚠️ Backend connection failed:', baseURL);
+  }
+};
+
+// Test connection on load
+if (typeof window !== 'undefined') {
+  testConnection();
+}
 
 // Request interceptor to add auth token
 Axios.interceptors.request.use(

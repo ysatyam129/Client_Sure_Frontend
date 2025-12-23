@@ -69,8 +69,21 @@ export default function PDFDocumentsContent() {
           id: doc._id || doc.id
         }))
       setDocuments(pdfDocs)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading documents:', error)
+      if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
+        toast.error('Backend server is not running. Please start the server.')
+      } else if (error.response?.status === 403) {
+        console.error('Admin authentication required')
+        const adminToken = localStorage.getItem('adminToken')
+        if (!adminToken) {
+          window.location.href = '/admin/auth/login'
+          return
+        }
+        toast.error('Admin authentication failed')
+      } else {
+        toast.error('Failed to load documents')
+      }
       setDocuments([])
     }
   }

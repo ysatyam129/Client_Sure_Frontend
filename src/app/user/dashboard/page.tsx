@@ -302,7 +302,7 @@ function DashboardContent() {
               <h2 className="text-xl font-bold text-gray-900">Lead Information</h2>
             </div>
             <p className="text-gray-700 mb-4">Access verified business leads with complete contact details and social profiles.</p>
-            <button onClick={() => handleNavigation('/user/leads')} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full">
+            <button onClick={() => handleNavigation('/user/leads/information')} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full">
               Browse Leads
             </button>
           </div>
@@ -316,7 +316,7 @@ function DashboardContent() {
               <h2 className="text-xl font-bold text-gray-900">Accessed Leads</h2>
             </div>
             <p className="text-gray-700 mb-4">View and manage all your unlocked leads with full contact information.</p>
-            <button onClick={() => handleNavigation('/user/leads?tab=accessed')} className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors w-full">
+            <button onClick={() => handleNavigation('/user/leads/accessed')} className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors w-full">
               View Accessed
             </button>
           </div>

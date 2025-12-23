@@ -127,13 +127,20 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-16">
-          {/* Logo - Far Left */}
-          <Link href="/user/dashboard" className="flex items-center space-x-2 mr-8">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">CS</span>
-            </div>
-            <span className="text-xl font-bold text-gray-900">Client<span className="text-blue-600">Sure</span></span>
-          </Link>
+          {/* Logo - Properly positioned on far left */}
+          <div className="flex items-center">
+            <Link href="/user/dashboard" className="flex items-center space-x-3 mr-8">
+              <div className="w-11 h-11 bg-gradient-to-br from-blue-600 via-blue-700 to-purple-600 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <span className="text-white font-bold text-xl tracking-tight">CS</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold text-gray-900 leading-tight">
+                  Client<span className="text-blue-600">Sure</span>
+                </span>
+                <span className="text-xs text-gray-500 font-medium -mt-1">Lead Management</span>
+              </div>
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1 flex-1">
@@ -145,7 +152,7 @@ export default function Navbar() {
               <FileText className="w-4 h-4" />
               <span className="font-medium">Resources</span>
             </Link>
-            <Link href="/user/leads" className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+            <Link href="/user/leads/information" className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
               <Users className="w-4 h-4" />
               <span className="font-medium">Leads</span>
             </Link>
@@ -355,7 +362,7 @@ export default function Navbar() {
               <FileText className="w-5 h-5" />
               <span className="font-medium">Resources</span>
             </Link>
-            <Link href="/user/leads" className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+            <Link href="/user/leads/information" className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
               <Users className="w-5 h-5" />
               <span className="font-medium">Leads</span>
             </Link>
