@@ -483,7 +483,6 @@ export default function EmailComposer({ onClose, onSend, categories, cities, cou
                 onEmojiClick={handleEmojiClick}
                 width={350}
                 height={400}
-                theme="light"
                 previewConfig={{
                   showPreview: false
                 }}
